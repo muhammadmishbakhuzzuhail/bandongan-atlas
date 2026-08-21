@@ -7,7 +7,8 @@ import Map, {
   type MapRef,
   type ViewState,
 } from "react-map-gl/maplibre"
-import type { LngLatBoundsLike, PaddingOptions } from "maplibre-gl"
+import type { LngLatBoundsLike } from "maplibre-gl"
+import { getVillageById } from "@/data/villages"
 import {
   getGeoJsonBounds,
   getVillageFeature,
@@ -20,11 +21,8 @@ import {
   COLOR_MAP_STYLE,
   DISTRICT_FIT_PADDING,
   DISTRICT_FOCUS_MAX_ZOOM,
-  DISTRICT_FOCUS_ZOOM_OFFSET,
   MAPLIBRE_WORKER_URL,
   MOBILE_FIT_PADDING,
-  REGENCY_MOBILE_NAVIGATION_PADDING,
-  REGENCY_NAVIGATION_PADDING,
   VILLAGE_SOURCE_ID,
 } from "@/lib/map"
 import type {
@@ -55,6 +53,7 @@ interface GeoMapProps {
   focusBoundary: VillageFeatureCollection | null
   contextBoundary: VillageFeatureCollection | null
   neighborBoundary: VillageFeatureCollection | null
+  cityContextBoundary: VillageFeatureCollection | null
   outsideMask: VillageFeatureCollection | null
   colorMap: RegionColorMap
   displayMode: MapDisplayMode
@@ -88,6 +87,7 @@ export function GeoMap({
   focusBoundary,
   contextBoundary,
   neighborBoundary,
+  cityContextBoundary,
   outsideMask,
   colorMap,
   displayMode,
@@ -101,7 +101,7 @@ export function GeoMap({
 }: GeoMapProps) {
   const mapRef = useRef<MapRef>(null)
   const previousHoverId = useRef<string | null>(null)
-  const initialBoundaryFitDone = useRef(false)
+  const initialBoundaryFitDone = useRef<string | null>(null)
   const [mapReady, setMapReady] = useState(false)
   const [mapInstance, setMapInstance] = useState<MapRef | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
@@ -125,26 +125,35 @@ export function GeoMap({
     },
     [isLocked, isMobile],
   )
-  const initialFitData = isLocked
+  const focusFitData = isLocked
     ? contextBoundary ?? focusBoundary ?? geoJson
     : focusBoundary ?? geoJson ?? contextBoundary
-  const contextBounds = useMemo(
-    () => getGeoJsonBounds(contextBoundary ?? focusBoundary ?? geoJson),
-    [contextBoundary, focusBoundary, geoJson],
+  const focusBounds = useMemo(
+    () => getGeoJsonBounds(focusFitData),
+    [focusFitData],
+  )
+  const focusBoundsKey = focusBounds?.join(":") ?? null
+  const navigationData =
+    dataset.navigationBoundsSource === "focus"
+      ? focusBoundary ?? geoJson ?? contextBoundary
+      : contextBoundary ?? focusBoundary ?? geoJson
+  const navigationBounds = useMemo(
+    () => getGeoJsonBounds(navigationData),
+    [navigationData],
   )
   const rasterBounds = useMemo(
     () => getGeoJsonBounds(focusBoundary ?? geoJson),
     [focusBoundary, geoJson],
   )
-  const navigationPadding: PaddingOptions = isMobile
-    ? REGENCY_MOBILE_NAVIGATION_PADDING
-    : REGENCY_NAVIGATION_PADDING
   const maskReady =
     !dataset.maskOutsideFocus || Boolean(focusBoundary && outsideMask)
   const selectedFeature = getVillageFeature(geoJson, selectedVillageId)
   const selectedCoordinate = selectedFeature
     ? getVillageLabelCoordinate(selectedFeature)
     : null
+  const hoveredVillage = hover
+    ? getVillageById(hover.id, dataset.villages)
+    : undefined
 
   const setFeatureHover = useCallback((id: string | null, value: boolean) => {
     const map = mapRef.current?.getMap()
@@ -160,56 +169,42 @@ export function GeoMap({
     setHover(null)
   }, [setFeatureHover])
 
-  const fitToFocus = useCallback(() => {
-    const map = mapRef.current?.getMap()
-    if (!map) return
-    const bounds = getGeoJsonBounds(initialFitData)
-    if (bounds) {
-      const maxZoom = isLocked
-        ? CITY_OVERVIEW_MAX_ZOOM
-        : DISTRICT_FOCUS_MAX_ZOOM
-      if (!isLocked) {
-        const focusCamera = map.cameraForBounds(bounds, {
+  const fitToFocus = useCallback(
+    (duration = 720) => {
+      const map = mapRef.current?.getMap()
+      if (!map || !map.isStyleLoaded()) return false
+
+      const container = map.getContainer()
+      if (!container.clientWidth || !container.clientHeight) return false
+
+      map.resize()
+      if (focusBounds) {
+        const maxZoom = isLocked
+          ? CITY_OVERVIEW_MAX_ZOOM
+          : DISTRICT_FOCUS_MAX_ZOOM
+        map.fitBounds(toMapBounds(focusBounds), {
           padding: fitPadding,
+          duration,
           maxZoom,
         })
-
-        if (focusCamera) {
-          map.flyTo({
-            ...focusCamera,
-            zoom: Math.min(
-              (focusCamera.zoom ?? fallbackViewState.zoom) +
-                DISTRICT_FOCUS_ZOOM_OFFSET,
-              maxZoom,
-            ),
-            duration: 720,
-          })
-          return
-        }
+        return true
       }
 
-      map.fitBounds(bounds, {
-        padding: fitPadding,
-        duration: 720,
-        maxZoom,
+      map.flyTo({
+        center: [fallbackViewState.longitude, fallbackViewState.latitude],
+        zoom: fallbackViewState.zoom,
+        duration,
       })
-      return
-    }
-
-    map.flyTo({
-      center: [fallbackViewState.longitude, fallbackViewState.latitude],
-      zoom: fallbackViewState.zoom,
-      duration: 650,
-    })
-  }, [fallbackViewState, fitPadding, initialFitData, isLocked])
+      return true
+    }, [fallbackViewState, fitPadding, focusBounds, isLocked])
 
   const applyNavigationConstraints = useCallback(() => {
     const map = mapRef.current?.getMap()
-    if (!map || isLocked || !contextBounds) return
+    if (!map || isLocked || !navigationBounds) return
 
-    const bounds = toMapBounds(contextBounds)
+    const bounds = toMapBounds(navigationBounds)
     const overviewCamera = map.cameraForBounds(bounds, {
-      padding: navigationPadding,
+      padding: fitPadding,
     })
 
     map.setMaxBounds(bounds)
@@ -220,27 +215,73 @@ export function GeoMap({
         map.jumpTo({ zoom: overviewZoom })
       }
     }
-  }, [contextBounds, isLocked, navigationPadding])
+  }, [fitPadding, isLocked, navigationBounds])
 
   useEffect(() => {
-    if (!mapReady || isLocked || !contextBounds) return
+    if (!mapReady || isLocked || !navigationBounds) return
     const map = mapRef.current?.getMap()
     if (!map) return
 
-    applyNavigationConstraints()
-    map.on("resize", applyNavigationConstraints)
+    let frame = 0
+    const scheduleConstraints = (resizeMap: boolean) => {
+      if (frame) window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        frame = 0
+        if (resizeMap) map.resize()
+        applyNavigationConstraints()
+      })
+    }
+    const handleMapResize = () => scheduleConstraints(false)
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => scheduleConstraints(true))
+        : null
+
+    resizeObserver?.observe(map.getContainer())
+    scheduleConstraints(true)
+    map.on("resize", handleMapResize)
 
     return () => {
-      map.off("resize", applyNavigationConstraints)
+      if (frame) window.cancelAnimationFrame(frame)
+      resizeObserver?.disconnect()
+      map.off("resize", handleMapResize)
     }
-  }, [applyNavigationConstraints, contextBounds, isLocked, mapReady])
+  }, [applyNavigationConstraints, isLocked, mapReady, navigationBounds])
 
   useEffect(() => {
-    if (!mapReady || initialBoundaryFitDone.current) return
-    if (!getGeoJsonBounds(initialFitData)) return
-    fitToFocus()
-    initialBoundaryFitDone.current = true
-  }, [fitToFocus, initialFitData, mapReady])
+    if (!mapReady || !focusBounds || initialBoundaryFitDone.current === focusBoundsKey) {
+      return
+    }
+
+    const map = mapRef.current?.getMap()
+    if (!map) return
+
+    let frame = 0
+    const tryInitialFit = () => {
+      if (initialBoundaryFitDone.current === focusBoundsKey) return
+      if (frame) window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        frame = 0
+        if (fitToFocus()) {
+          initialBoundaryFitDone.current = focusBoundsKey
+        }
+      })
+    }
+
+    tryInitialFit()
+    map.on("idle", tryInitialFit)
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(tryInitialFit)
+        : null
+    resizeObserver?.observe(map.getContainer())
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      resizeObserver?.disconnect()
+      map.off("idle", tryInitialFit)
+    }
+  }, [fitToFocus, focusBounds, focusBoundsKey, mapReady])
 
   const enforceLayerOrder = useCallback(() => {
     const map = mapRef.current?.getMap()
@@ -249,11 +290,14 @@ export function GeoMap({
     const desiredOrder = [
       "satellite-imagery-layer",
       "outside-focus-mask-fill",
+      "city-context-fill",
       "neighbor-boundary-fill",
+      "city-context-line",
       "neighbor-boundary-line",
-      "focus-boundary-line",
       "village-fill",
       "village-border",
+      "focus-boundary-line",
+      "city-context-label",
       "neighbor-label",
       "village-label",
       "village-label-selected",
@@ -301,7 +345,17 @@ export function GeoMap({
       map.off("styledata", schedule)
       map.off("idle", schedule)
     }
-  }, [contextBoundary, enforceLayerOrder, focusBoundary, geoJson, mapReady, maskReady, neighborBoundary, outsideMask])
+  }, [
+    cityContextBoundary,
+    contextBoundary,
+    enforceLayerOrder,
+    focusBoundary,
+    geoJson,
+    mapReady,
+    maskReady,
+    neighborBoundary,
+    outsideMask,
+  ])
 
   const handleMouseMove = useCallback(
     (event: MapLayerMouseEvent) => {
@@ -378,7 +432,9 @@ export function GeoMap({
         dragRotate={false}
         touchPitch={false}
         touchZoomRotate={!isLocked}
-        interactiveLayerIds={geoJson ? ["village-fill"] : []}
+        interactiveLayerIds={
+          geoJson ? ["village-fill", "village-border"] : []
+        }
         onLoad={(event) => {
           if (isLocked) {
             event.target.dragPan.disable()
@@ -406,7 +462,7 @@ export function GeoMap({
         }}
         reuseMaps
       >
-        {mapReady && maskReady && (
+        {mapReady && displayMode === "satellite" && maskReady && (
           <BasemapLayer
             key={rasterBounds?.join(":") ?? "unbounded-basemap"}
             bounds={rasterBounds}
@@ -419,6 +475,8 @@ export function GeoMap({
           <ContextBoundaryLayer
             focusBoundary={focusBoundary}
             neighborBoundary={neighborBoundary}
+            cityContextBoundary={cityContextBoundary}
+            cityContextLabel={dataset.cityContextLabel}
           />
         )}
         {mapReady && geoJson && (
@@ -435,6 +493,7 @@ export function GeoMap({
             longitude={hover.longitude}
             latitude={hover.latitude}
             name={hover.name}
+            village={hoveredVillage}
           />
         )}
         {mapReady && selectedVillageId && selectedCoordinate && (

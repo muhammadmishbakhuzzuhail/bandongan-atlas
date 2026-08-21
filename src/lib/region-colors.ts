@@ -1,6 +1,6 @@
 import booleanTouches from "@turf/boolean-touches"
 import type { ExpressionSpecification } from "maplibre-gl"
-import type { Feature, MultiPolygon, Polygon } from "geojson"
+import type { Feature, MultiPolygon, Polygon, Position } from "geojson"
 import type { VillageFeature, VillageFeatureCollection } from "@/types/geo"
 
 export const REGION_COLOR_PALETTE = [
@@ -74,6 +74,66 @@ function getGeometryFeature(feature: VillageFeature) {
   return feature as Feature<Polygon | MultiPolygon>
 }
 
+function isPosition(value: unknown): value is Position {
+  return (
+    Array.isArray(value) &&
+    value.length >= 2 &&
+    typeof value[0] === "number" &&
+    typeof value[1] === "number"
+  )
+}
+
+function collectBoundaryPositions(value: unknown, positions: Position[] = []) {
+  if (isPosition(value)) {
+    positions.push(value)
+    return positions
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((child) => collectBoundaryPositions(child, positions))
+  }
+
+  return positions
+}
+
+function positionKey(position: Position) {
+  return `${position[0].toFixed(6)}:${position[1].toFixed(6)}`
+}
+
+function shareBoundaryCoordinates(
+  left: Feature<Polygon | MultiPolygon>,
+  right: Feature<Polygon | MultiPolygon>,
+) {
+  const leftPositions = collectBoundaryPositions(left.geometry.coordinates)
+  const rightPositions = collectBoundaryPositions(right.geometry.coordinates)
+  const rightKeys = new Set(rightPositions.map(positionKey))
+  let sharedCoordinates = 0
+
+  for (const position of leftPositions) {
+    if (!rightKeys.has(positionKey(position))) continue
+    sharedCoordinates += 1
+    if (sharedCoordinates >= 2) return true
+  }
+
+  return false
+}
+
+function geometriesTouch(
+  left: Feature<Polygon | MultiPolygon>,
+  right: Feature<Polygon | MultiPolygon>,
+) {
+  try {
+    if (booleanTouches(left, right)) return true
+  } catch (error) {
+    console.warn("Adjacency check Turf gagal; memakai shared-boundary fallback.", error)
+  }
+
+  // Some generalized administrative datasets preserve shared boundary vertices
+  // but fail Turf's strict topological touches predicate. Two shared vertices
+  // are enough to identify a shared boundary segment without changing geometry.
+  return shareBoundaryCoordinates(left, right)
+}
+
 /**
  * Assigns colors using a deterministic DSATUR-style graph coloring pass.
  * A color may repeat only when two regions do not touch geometrically.
@@ -106,7 +166,7 @@ export function getRegionColorMap(
       if (!rightGeometry) continue
 
       try {
-        if (!booleanTouches(leftGeometry, rightGeometry)) continue
+        if (!geometriesTouch(leftGeometry, rightGeometry)) continue
         neighbors.get(left.id)?.add(right.id)
         neighbors.get(right.id)?.add(left.id)
       } catch (error) {

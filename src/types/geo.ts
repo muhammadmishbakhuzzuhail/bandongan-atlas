@@ -15,7 +15,7 @@ export interface VillageGeoJsonProperties {
   id?: string | number
   name?: string
   slug?: string
-  role?: "focus" | "context" | "neighbor"
+  role?: "focus" | "context" | "neighbor" | "city-context"
   labelCoordinates?: [number, number]
   label_coordinates?: [number, number]
   labelLon?: number

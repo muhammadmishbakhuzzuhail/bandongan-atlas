@@ -5,8 +5,9 @@ import type { GeographicDataset } from "@/types/dataset"
 
 export const bandonganDataset: GeographicDataset = {
   id: "bandongan",
-  brandName: "Atlas Bandongan",
-  brandSubtitle: "Peta desa & statistik",
+  brandName: "Kecamatan Bandongan",
+  brandSubtitle: "Kabupaten Magelang · Jawa Tengah",
+  brandLogoSrc: "/branding/logo-kabupaten-magelang.webp",
   title: "Kecamatan Bandongan",
   unitLabel: "Desa",
   unitLabelPlural: "Desa",
@@ -18,6 +19,11 @@ export const bandonganDataset: GeographicDataset = {
     "Periksa geometry desa dan konteks kecamatan pada GeoJSON resmi yang dipakai dataset ini.",
   geoJsonPath: "/geojson/bandongan-villages.geojson",
   contextBoundaryPath: "/geojson/magelang-districts.geojson",
+  cityContextBoundaryPath: "/geojson/kota-magelang.geojson",
+  cityContextLabel: "Kota Magelang",
+  // The first view fits Bandongan, but navigation stays inside the full
+  // Kabupaten Magelang context so adjacent districts remain discoverable.
+  navigationBoundsSource: "context",
   focusBoundaryIds: ["330814"],
   interactionMode: "interactive",
   maskOutsideFocus: true,
@@ -42,6 +48,7 @@ export const demoNycDataset: GeographicDataset = {
   pendingDescription: "Periksa file GeoJSON demo dan muat ulang halaman.",
   geoJsonPath: "/geojson/demo-nyc-boroughs.geojson",
   contextBoundaryPath: "/geojson/nyc-city-boundary.geojson",
+  navigationBoundsSource: "context",
   interactionMode: "locked",
   maskOutsideFocus: true,
   boundarySourceLabel: "NYC DCP borough boundaries · imagery masked",

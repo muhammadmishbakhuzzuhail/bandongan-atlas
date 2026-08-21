@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from "react"
 import type {
+  ExpressionSpecification,
   FillLayerSpecification,
   FilterSpecification,
   GeoJSONSource,
@@ -25,17 +26,62 @@ interface VillageLayerProps {
 const VILLAGE_LAYER_IDS = [
   "village-fill",
   "village-border",
+  // Cleanup compatibility for sessions hot-reloaded from the previous halo layer.
+  "village-boundary-halo",
 ] as const
 
 const LABEL_LAYER_IDS = ["village-label", "village-label-selected"] as const
 
-const VILLAGE_OPACITY = {
-  normal: 0.4,
-  hover: 0.6,
-  selected: 0.7,
+const VILLAGE_FILL_OPACITY = {
+  overlay: {
+    normal: 0.8,
+    hover: 1,
+    selected: 1,
+  },
+  satellite: {
+    normal: 0,
+    hover: 0,
+    selected: 0,
+  },
 } as const
 
-const VILLAGE_BORDER_WIDTH = 1
+const VILLAGE_BORDER_COLOR = "#FFFFFF"
+const VILLAGE_BORDER_WIDTH = 0.9
+const VILLAGE_HOVER_BORDER_WIDTH = 1.25
+const VILLAGE_SELECTED_BORDER_WIDTH = 1.4
+const VILLAGE_BORDER_OPACITY = {
+  overlay: {
+    normal: 0.46,
+    hover: 0.82,
+    selected: 0.95,
+  },
+  satellite: {
+    normal: 0.68,
+    hover: 1,
+    selected: 1,
+  },
+} as const
+
+function getStateExpression(
+  selectedVillageId: string | null,
+  selectedValue: number,
+  hoverValue: number,
+  normalValue: number,
+): ExpressionSpecification {
+  const expression: unknown[] = ["case"]
+
+  if (selectedVillageId) {
+    expression.push(["==", ["get", "id"], selectedVillageId], selectedValue)
+  }
+
+  expression.push(
+    ["boolean", ["feature-state", "hover"], false],
+    hoverValue,
+    normalValue,
+  )
+
+  return expression as ExpressionSpecification
+}
 
 function removeLayersAndSources(map: ReturnType<MapRef["getMap"]>) {
   for (const layerId of [...VILLAGE_LAYER_IDS, ...LABEL_LAYER_IDS]) {
@@ -70,9 +116,40 @@ export function VillageLayer({
     [selectedVillageId],
   )
   const overlayVisible = displayMode === "overlay"
-  const normalFillOpacity = overlayVisible ? VILLAGE_OPACITY.normal : 0
-  const hoverFillOpacity = overlayVisible ? VILLAGE_OPACITY.hover : 0
-  const selectedFillOpacity = overlayVisible ? VILLAGE_OPACITY.selected : 0
+  const fillOpacity = overlayVisible
+    ? VILLAGE_FILL_OPACITY.overlay
+    : VILLAGE_FILL_OPACITY.satellite
+  const borderOpacity = overlayVisible
+    ? VILLAGE_BORDER_OPACITY.overlay
+    : VILLAGE_BORDER_OPACITY.satellite
+  const villageBorderOpacityExpression = useMemo(
+    () =>
+      getStateExpression(
+        selectedVillageId,
+        borderOpacity.selected,
+        borderOpacity.hover,
+        borderOpacity.normal,
+      ),
+    [borderOpacity, selectedVillageId],
+  )
+  const villageBorderWidthExpression = useMemo<ExpressionSpecification>(() => {
+    const expression: unknown[] = ["case"]
+
+    if (selectedVillageId) {
+      expression.push(
+        ["==", ["get", "id"], selectedVillageId],
+        VILLAGE_SELECTED_BORDER_WIDTH,
+      )
+    }
+
+    expression.push(
+      ["boolean", ["feature-state", "hover"], false],
+      VILLAGE_HOVER_BORDER_WIDTH,
+      VILLAGE_BORDER_WIDTH,
+    )
+
+    return expression as ExpressionSpecification
+  }, [selectedVillageId])
 
   useEffect(() => {
     const map = mapRef?.getMap()
@@ -112,21 +189,12 @@ export function VillageLayer({
       source: VILLAGE_SOURCE_ID,
       paint: {
         "fill-color": villageColorExpression,
-        "fill-opacity": selectedVillageId
-          ? [
-              "case",
-              ["==", ["get", "id"], selectedVillageId],
-              selectedFillOpacity,
-              ["boolean", ["feature-state", "hover"], false],
-              hoverFillOpacity,
-              normalFillOpacity,
-            ]
-          : [
-              "case",
-              ["boolean", ["feature-state", "hover"], false],
-              hoverFillOpacity,
-              normalFillOpacity,
-            ],
+        "fill-opacity": getStateExpression(
+          selectedVillageId,
+          fillOpacity.selected,
+          fillOpacity.hover,
+          fillOpacity.normal,
+        ),
       },
     }
     const borderLayer: LineLayerSpecification = {
@@ -134,23 +202,9 @@ export function VillageLayer({
       type: "line",
       source: VILLAGE_SOURCE_ID,
       paint: {
-        "line-color": villageColorExpression,
-        "line-width": VILLAGE_BORDER_WIDTH,
-        "line-opacity": selectedVillageId
-          ? [
-              "case",
-              ["==", ["get", "id"], selectedVillageId],
-              VILLAGE_OPACITY.selected,
-              ["boolean", ["feature-state", "hover"], false],
-              VILLAGE_OPACITY.hover,
-              VILLAGE_OPACITY.normal,
-            ]
-          : [
-              "case",
-              ["boolean", ["feature-state", "hover"], false],
-              VILLAGE_OPACITY.hover,
-              VILLAGE_OPACITY.normal,
-            ],
+        "line-color": VILLAGE_BORDER_COLOR,
+        "line-width": villageBorderWidthExpression,
+        "line-opacity": villageBorderOpacityExpression,
       },
     }
     const labelLayer: SymbolLayerSpecification = {
@@ -219,52 +273,29 @@ export function VillageLayer({
       map.setPaintProperty(
         "village-fill",
         "fill-opacity",
-        selectedVillageId
-          ? [
-              "case",
-              ["==", ["get", "id"], selectedVillageId],
-              selectedFillOpacity,
-              ["boolean", ["feature-state", "hover"], false],
-              hoverFillOpacity,
-              normalFillOpacity,
-            ]
-          : [
-              "case",
-              ["boolean", ["feature-state", "hover"], false],
-              hoverFillOpacity,
-              normalFillOpacity,
-            ],
+        getStateExpression(
+          selectedVillageId,
+          fillOpacity.selected,
+          fillOpacity.hover,
+          fillOpacity.normal,
+        ),
       )
     }
     if (map.getLayer("village-border")) {
       map.setPaintProperty(
         "village-border",
         "line-color",
-        villageColorExpression,
+        VILLAGE_BORDER_COLOR,
       )
       map.setPaintProperty(
         "village-border",
         "line-width",
-        VILLAGE_BORDER_WIDTH,
+        villageBorderWidthExpression,
       )
       map.setPaintProperty(
         "village-border",
         "line-opacity",
-        selectedVillageId
-          ? [
-              "case",
-              ["==", ["get", "id"], selectedVillageId],
-              VILLAGE_OPACITY.selected,
-              ["boolean", ["feature-state", "hover"], false],
-              VILLAGE_OPACITY.hover,
-              VILLAGE_OPACITY.normal,
-            ]
-          : [
-              "case",
-              ["boolean", ["feature-state", "hover"], false],
-              VILLAGE_OPACITY.hover,
-              VILLAGE_OPACITY.normal,
-            ],
+        villageBorderOpacityExpression,
       )
     }
     if (map.getLayer("village-label-selected")) {
@@ -283,9 +314,9 @@ export function VillageLayer({
     selectedFilter,
     selectedVillageId,
     villageColorExpression,
-    hoverFillOpacity,
-    normalFillOpacity,
-    selectedFillOpacity,
+    villageBorderOpacityExpression,
+    villageBorderWidthExpression,
+    fillOpacity,
   ])
 
   return null

@@ -2,18 +2,38 @@
 
 import { useMemo } from "react"
 import { Layer, Source } from "react-map-gl/maplibre"
-import { buildVillageLabelCollection } from "@/lib/geojson"
+import {
+  buildAggregateLabelCollection,
+  buildVillageLabelCollection,
+} from "@/lib/geojson"
 import type { VillageFeatureCollection } from "@/types/geo"
 
 interface ContextBoundaryLayerProps {
   focusBoundary: VillageFeatureCollection
   neighborBoundary: VillageFeatureCollection
+  cityContextBoundary: VillageFeatureCollection | null
+  cityContextLabel?: string
 }
+
+const DISTRICT_BOUNDARY_COLOR = "#222222"
 
 export function ContextBoundaryLayer({
   focusBoundary,
   neighborBoundary,
+  cityContextBoundary,
+  cityContextLabel,
 }: ContextBoundaryLayerProps) {
+  const cityContextLabels = useMemo(
+    () =>
+      cityContextLabel
+        ? buildAggregateLabelCollection(
+            cityContextBoundary,
+            cityContextLabel,
+            "city-context-label",
+          )
+        : buildVillageLabelCollection(cityContextBoundary),
+    [cityContextBoundary, cityContextLabel],
+  )
   const neighborLabels = useMemo(
     () => buildVillageLabelCollection(neighborBoundary),
     [neighborBoundary],
@@ -21,6 +41,35 @@ export function ContextBoundaryLayer({
 
   return (
     <>
+      {cityContextBoundary && cityContextBoundary.features.length > 0 && (
+        <Source
+          id="city-context-boundaries"
+          type="geojson"
+          data={cityContextBoundary as unknown as GeoJSON.FeatureCollection}
+        >
+          <Layer
+            id="city-context-fill"
+            type="fill"
+            paint={{
+              "fill-color": "#FFFFFF",
+              "fill-opacity": 1,
+            }}
+          />
+          <Layer
+            id="city-context-line"
+            type="line"
+            layout={{
+              "line-cap": "round",
+              "line-join": "round",
+            }}
+            paint={{
+              "line-color": DISTRICT_BOUNDARY_COLOR,
+              "line-width": 1,
+              "line-opacity": 0.68,
+            }}
+          />
+        </Source>
+      )}
       {neighborBoundary.features.length > 0 && (
         <Source
           id="neighbor-boundaries"
@@ -39,9 +88,9 @@ export function ContextBoundaryLayer({
             id="neighbor-boundary-line"
             type="line"
             paint={{
-              "line-color": "#7D8D89",
-              "line-width": 1.2,
-              "line-opacity": 0.82,
+              "line-color": DISTRICT_BOUNDARY_COLOR,
+              "line-width": 1,
+              "line-opacity": 0.68,
             }}
           />
         </Source>
@@ -85,6 +134,45 @@ export function ContextBoundaryLayer({
           />
         </Source>
       )}
+      {cityContextLabels.features.length > 0 && (
+        <Source
+          id="city-context-label-points"
+          type="geojson"
+          data={cityContextLabels as unknown as GeoJSON.FeatureCollection}
+        >
+          <Layer
+            id="city-context-label"
+            type="symbol"
+            minzoom={7}
+            layout={{
+              "text-field": ["get", "name"],
+              "text-font": ["Noto Sans Regular"],
+              "text-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                7,
+                10,
+                10,
+                12,
+                13,
+                13,
+              ],
+              "text-anchor": "center",
+              "text-max-width": 10,
+              "text-allow-overlap": true,
+              "text-ignore-placement": true,
+              "text-padding": 2,
+            }}
+            paint={{
+              "text-color": "#526663",
+              "text-halo-color": "#FFFFFF",
+              "text-halo-width": 2.5,
+              "text-halo-blur": 0.2,
+            }}
+          />
+        </Source>
+      )}
       <Source
         id="focus-boundary"
         type="geojson"
@@ -94,8 +182,8 @@ export function ContextBoundaryLayer({
           id="focus-boundary-line"
           type="line"
           paint={{
-            "line-color": "#173B39",
-            "line-width": 2.6,
+            "line-color": DISTRICT_BOUNDARY_COLOR,
+            "line-width": 1.7,
             "line-opacity": 0.9,
           }}
         />

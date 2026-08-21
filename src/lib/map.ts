@@ -42,8 +42,6 @@ export const DISTRICT_FIT_PADDING = {
   left: 46,
 }
 
-/** Keeps the GeoJSON-derived focus while presenting Bandongan slightly closer. */
-export const DISTRICT_FOCUS_ZOOM_OFFSET = 0.5
 export const DISTRICT_FOCUS_MAX_ZOOM = 14
 
 export const MOBILE_FIT_PADDING = {
@@ -51,20 +49,6 @@ export const MOBILE_FIT_PADDING = {
   right: 26,
   bottom: 42,
   left: 26,
-}
-
-export const REGENCY_NAVIGATION_PADDING = {
-  top: 42,
-  right: 42,
-  bottom: 42,
-  left: 42,
-}
-
-export const REGENCY_MOBILE_NAVIGATION_PADDING = {
-  top: 178,
-  right: 24,
-  bottom: 72,
-  left: 24,
 }
 
 export const CITY_FIT_PADDING = {

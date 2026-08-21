@@ -1,12 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { CircleAlert, Layers3, LoaderCircle, MapPinned } from "lucide-react"
+import Image from "next/image"
+import { CircleAlert, Layers3, LoaderCircle } from "lucide-react"
 import { GeoMap } from "@/components/map/GeoMap"
 import { MapDisplayToggle } from "@/components/map/MapDisplayToggle"
 import { VillageLegend } from "@/components/map/VillageLegend"
 import { VillageList } from "@/components/village/VillageList"
-import { VillageSearch } from "@/components/village/VillageSearch"
 import { activeDataset } from "@/data/datasets"
 import { getVillageById } from "@/data/villages"
 import {
@@ -29,6 +29,7 @@ type BoundaryState =
       focusBoundary: null
       contextBoundary: null
       neighborBoundary: null
+      cityContextBoundary: null
       outsideMask: null
       error: null
     }
@@ -38,6 +39,7 @@ type BoundaryState =
       focusBoundary: VillageFeatureCollection | null
       contextBoundary: VillageFeatureCollection | null
       neighborBoundary: VillageFeatureCollection | null
+      cityContextBoundary: VillageFeatureCollection | null
       outsideMask: VillageFeatureCollection | null
       error: null
     }
@@ -47,6 +49,7 @@ type BoundaryState =
       focusBoundary: null
       contextBoundary: null
       neighborBoundary: null
+      cityContextBoundary: null
       outsideMask: null
       error: string
     }
@@ -55,6 +58,27 @@ const villageIds = activeDataset.villages.map((village) => village.id)
 
 function getContextFeatureId(feature: VillageFeature) {
   return String(feature.properties?.id ?? feature.id ?? "")
+}
+
+function normalizeCityContextBoundary(
+  collection: VillageFeatureCollection | null,
+) {
+  if (!collection) return null
+
+  return {
+    ...collection,
+    features: collection.features.map((feature) => ({
+      ...feature,
+      id: "3371",
+      properties: {
+        ...feature.properties,
+        id: "3371",
+        name: "Kota Magelang",
+        slug: "kota-magelang",
+        role: "city-context" as const,
+      },
+    })),
+  }
 }
 
 function splitContextBoundary(
@@ -91,6 +115,7 @@ export function DashboardShell() {
     focusBoundary: null,
     contextBoundary: null,
     neighborBoundary: null,
+    cityContextBoundary: null,
     outsideMask: null,
     error: null,
   })
@@ -106,12 +131,20 @@ export function DashboardShell() {
 
     async function loadBoundaryData() {
       try {
-        const [regionResponse, contextResponse] = await Promise.all([
-          fetch(activeDataset.geoJsonPath, { signal: controller.signal }),
-          activeDataset.contextBoundaryPath
-            ? fetch(activeDataset.contextBoundaryPath, { signal: controller.signal })
-            : Promise.resolve(null),
-        ])
+        const [regionResponse, contextResponse, cityContextResponse] =
+          await Promise.all([
+            fetch(activeDataset.geoJsonPath, { signal: controller.signal }),
+            activeDataset.contextBoundaryPath
+              ? fetch(activeDataset.contextBoundaryPath, {
+                  signal: controller.signal,
+                })
+              : Promise.resolve(null),
+            activeDataset.cityContextBoundaryPath
+              ? fetch(activeDataset.cityContextBoundaryPath, {
+                  signal: controller.signal,
+                })
+              : Promise.resolve(null),
+          ])
 
         if (!regionResponse.ok) {
           throw new Error(`Region GeoJSON request failed with status ${regionResponse.status}`)
@@ -121,15 +154,29 @@ export function DashboardShell() {
             `Context GeoJSON request failed with status ${contextResponse?.status ?? "unknown"}`,
           )
         }
+        if (
+          activeDataset.cityContextBoundaryPath &&
+          !cityContextResponse?.ok
+        ) {
+          throw new Error(
+            `City context GeoJSON request failed with status ${cityContextResponse?.status ?? "unknown"}`,
+          )
+        }
 
         const regionSource: unknown = await regionResponse.json()
         const contextSource: unknown = contextResponse
           ? await contextResponse.json()
           : null
+        const cityContextSource: unknown = cityContextResponse
+          ? await cityContextResponse.json()
+          : null
         const data = parseVillageGeoJSON(regionSource)
         const contextBoundary = contextSource
           ? parseVillageGeoJSON(contextSource)
           : null
+        const cityContextBoundary = normalizeCityContextBoundary(
+          cityContextSource ? parseVillageGeoJSON(cityContextSource) : null,
+        )
         const { focusBoundary, neighborBoundary } = splitContextBoundary(
           contextBoundary,
           activeDataset.focusBoundaryIds,
@@ -149,6 +196,7 @@ export function DashboardShell() {
           focusBoundary,
           contextBoundary,
           neighborBoundary,
+          cityContextBoundary,
           outsideMask,
           error: null,
         })
@@ -161,6 +209,7 @@ export function DashboardShell() {
           focusBoundary: null,
           contextBoundary: null,
           neighborBoundary: null,
+          cityContextBoundary: null,
           outsideMask: null,
           error: "Data peta tidak dapat dimuat. Silakan coba kembali.",
         })
@@ -203,8 +252,21 @@ export function DashboardShell() {
     <main className="atlas-shell">
       <header className="atlas-header">
         <div className="atlas-brand">
-          <div className="atlas-brand-mark" aria-hidden="true">
-            <MapPinned size={19} strokeWidth={1.9} />
+          <div
+            className={`atlas-brand-mark${activeDataset.brandLogoSrc ? " has-logo" : ""}`}
+          >
+            {activeDataset.brandLogoSrc ? (
+              <Image
+                src={activeDataset.brandLogoSrc}
+                alt={`Logo ${activeDataset.brandName}`}
+                width={38}
+                height={50}
+                priority
+                className="atlas-brand-logo"
+              />
+            ) : (
+              <Layers3 size={19} strokeWidth={1.9} aria-hidden="true" />
+            )}
           </div>
           <div>
             <p>{activeDataset.brandName}</p>
@@ -216,7 +278,6 @@ export function DashboardShell() {
             <i aria-hidden="true" />
             {boundaryStatus}
           </span>
-          <span className="header-location">{activeDataset.locationLabel}</span>
         </div>
       </header>
 
@@ -235,6 +296,7 @@ export function DashboardShell() {
             focusBoundary={boundary.focusBoundary}
             contextBoundary={boundary.contextBoundary}
             neighborBoundary={boundary.neighborBoundary}
+            cityContextBoundary={boundary.cityContextBoundary}
             outsideMask={boundary.outsideMask}
             colorMap={colorMap}
             displayMode={displayMode}
@@ -248,20 +310,7 @@ export function DashboardShell() {
           />
 
           <div className="map-toolbar">
-            <div className="map-context-card">
-              <div className="map-context-label">
-                <Layers3 size={14} strokeWidth={2} aria-hidden="true" />
-                <span>Administrative atlas</span>
-              </div>
-              <h1>{activeDataset.title}</h1>
-              <p>{activeDataset.mapDescription}</p>
-            </div>
             <div className="map-action-row">
-              <VillageSearch
-                villages={activeDataset.villages}
-                unitLabel={activeDataset.unitLabel}
-                onSelectVillage={handleSelectVillage}
-              />
               <VillageList
                 villages={activeDataset.villages}
                 unitLabel={activeDataset.unitLabel}
@@ -330,7 +379,9 @@ export function DashboardShell() {
             <span>{activeDataset.boundarySourceLabel}</span>
             <span aria-hidden="true">·</span>
             <span>
-              {displayMode === "overlay" ? "Warna desa 40%" : "Citra satelit"}
+              {displayMode === "overlay"
+                ? "Warna desa 80% · hover 100%"
+                : "Citra satelit · batas putih"}
               {" · "}Navigasi dibatasi Kabupaten Magelang
             </span>
           </div>

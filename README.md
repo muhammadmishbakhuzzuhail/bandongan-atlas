@@ -39,6 +39,14 @@ Konteks Kabupaten Magelang berada di:
 
 File konteks berisi 21 kecamatan Kabupaten Magelang dari [BIG BATAS_KECAMATAN_AR](https://geoservices.big.go.id/rbi/rest/services/BATASWILAYAH/BATAS_KECAMATAN_AR/MapServer/0) dengan filter kode `33.08.*`. Geometry digeneralisasi oleh layanan BIG untuk kebutuhan overview web. Bandongan diberi `role: "focus"`, sedangkan 20 kecamatan lain diberi `role: "context"`. Kode Kota Magelang `33.71.*` tidak disertakan. Kecamatan konteks tampil putih dan berlabel, tetapi statistik serta interaksi tetap khusus desa Bandongan dari `bandongan-villages.geojson`.
 
+Kecamatan Kota Magelang yang berbatasan langsung dengan sisi timur Bandongan berada di:
+
+```text
+/public/geojson/kota-magelang.geojson
+```
+
+File ini berisi outline Kota Magelang dari geometry resmi BIG, dengan satu feature `MultiPolygon` dan properti administratif Kota Magelang. Layer tersebut ditampilkan putih dengan satu garis batas kota dan satu label **Kota Magelang**; layer ini tidak menjadi wilayah desa yang dapat dipilih atau diberi statistik Bandongan.
+
 Untuk pengujian integrasi, repository juga menyimpan:
 
 ```text
@@ -63,7 +71,7 @@ Untuk demo NYC, citra di luar kota ditutup dengan inverse mask yang dibentuk dar
 
 File tersebut memakai geometry resmi [Borough Boundaries (water areas included)](https://data.cityofnewyork.us/City-Government/Borough-Boundaries-water-areas-included-/wh2p-dxnf) dari NYC Department of City Planning. Geometry sumber tidak diubah; aplikasi hanya membentuk polygon turunan `world - NYC` untuk layer putih di luar kota. Overlay borough tetap memakai boundary daratan agar warna wilayah tidak menutupi area air secara berlebihan.
 
-Dataset aktif dipilih di [`src/data/datasets.ts`](src/data/datasets.ts). Saat ini `bandonganDataset` aktif dengan initial/reset view ke Bandongan, batas navigasi seluruh Kabupaten Magelang, mask putih di luar Bandongan, dua mode tampilan, label kecamatan, hover, click, pencarian, selected state, dan dialog statistik. `demoNycDataset` tetap tersedia sebagai fixture untuk menguji geometry `MultiPolygon`, mask, dan kamera terkunci.
+Dataset aktif dipilih di [`src/data/datasets.ts`](src/data/datasets.ts). Saat ini `bandonganDataset` aktif dengan initial/reset view ke Bandongan, batas navigasi Kecamatan Bandongan, mask putih di luar Bandongan, dua mode tampilan, label kecamatan, hover, click, daftar desa, selected state, dan dialog statistik. `demoNycDataset` tetap tersedia sebagai fixture untuk menguji geometry `MultiPolygon`, mask, dan kamera terkunci.
 
 Setiap feature minimal harus memiliki properties berikut:
 
@@ -84,7 +92,7 @@ Setiap feature minimal harus memiliki properties berikut:
 
 Geometry `Polygon` dan `MultiPolygon` didukung. Untuk geometry yang benar-benar valid, `coordinates` harus berisi ring/coordinate resmi; contoh di atas hanya menjelaskan bentuk properties dan bukan boundary yang dapat dirender.
 
-ID dari `properties.id` atau `properties.slug` harus sesuai dengan `id` di dataset statistik aktif. Jika GeoJSON menyediakan titik label, aplikasi akan memakai `labelCoordinates` / `label_coordinates` atau pasangan `labelLon` + `labelLat`; bila tidak, aplikasi menghitung approximate center dari geometry.
+ID dari `properties.id` atau `properties.slug` harus sesuai dengan `id` di dataset statistik aktif. Jika GeoJSON menyediakan titik label yang berada di dalam geometry, aplikasi akan memakainya melalui `labelCoordinates` / `label_coordinates` atau pasangan `labelLon` + `labelLat`. Bila tidak tersedia atau titiknya berada di luar polygon, aplikasi menghitung representative point yang divalidasi tetap berada di dalam geometry, termasuk untuk `MultiPolygon`.
 
 ## Data statistik
 
@@ -99,11 +107,12 @@ Dataset NYC memakai `interactionMode: "locked"`: camera otomatis fit ke batas ko
 Aplikasi memakai citra satelit dengan dua mode tampilan:
 
 - Basemap: raster imagery [Esri World Imagery](https://developers.arcgis.com/maplibre-gl-js/maps/raster-tile-basemaps/display-multiple-basemap-layers/).
-- `Warna desa`: overlay adjacency-aware dengan fill dan garis 40% pada kondisi normal, 60% saat hover, serta 70% saat dipilih.
-- `Citra satelit`: fill warna disembunyikan, tetapi batas, label, hover, click, dan dialog desa tetap aktif.
+- `Warna desa`: overlay adjacency-aware dengan fill warna 100%; batas inti berwarna pine diberi halo putih tipis agar tetap kontras pada semua warna desa.
+- `Citra satelit`: hanya citra satelit dan garis batas desa putih opacity 100%; label, hover, click, dan dialog desa tetap aktif; fill warna desa disembunyikan agar citra asli tidak tertutup.
 - Di luar Kecamatan Bandongan: inverse mask putih.
 - Dua puluh kecamatan Kabupaten Magelang lainnya: putih, hanya garis batas dan label, serta tidak interaktif.
-- Kamera dimulai dan di-reset ke Bandongan; pan dan zoom-out dibatasi oleh bounds seluruh Kabupaten Magelang.
+- Kota Magelang di sisi timur: putih, hanya outline dan satu label **Kota Magelang**, serta tidak interaktif.
+- Kamera dimulai dan di-reset ke Bandongan; pan dan zoom-out dibatasi oleh bounds Kecamatan Bandongan.
 
 Attribution Esri selalu ditampilkan. Endpoint imagery ini dipakai untuk development/testing; review terms, quota, dan kebutuhan token sebelum deployment production. Panduan attribution Esri tersedia [di sini](https://support.esri.com/en-us/knowledge-base/what-is-the-correct-way-to-cite-an-arcgis-online-basema-000012040).
 
@@ -111,7 +120,12 @@ Attribution Esri selalu ditampilkan. Endpoint imagery ini dipakai untuk developm
 
 - `src/app` — App Router shell dan global styles.
 - `src/components/map` — MapLibre source/layers, focus mask, konteks kecamatan, legend, hover tooltip, dialog statistik, dan map controls.
-- `src/components/village` — search dan list desa.
+- `src/components/village` — daftar desa dan selection entry point.
 - `src/data` — konfigurasi dataset dan data statistik statis; geometry tetap berada di `public/geojson`.
+- `public/branding` — asset logo resmi yang digunakan pada navbar.
 - `src/lib` — parsing GeoJSON, bounds/label helpers, focus mask, adjacency-aware colors, formatter, dan map constants.
 - `src/hooks` — state selection terpusat dengan optional `?village=...` URL state.
+
+Navbar Bandongan memakai salinan lokal logo Kabupaten Magelang di
+`/public/branding/logo-kabupaten-magelang.webp`, yang diambil dari situs resmi
+Pemerintah Kabupaten Magelang agar runtime tidak bergantung pada URL eksternal.
