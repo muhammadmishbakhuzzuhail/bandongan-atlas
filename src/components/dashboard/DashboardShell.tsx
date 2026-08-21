@@ -21,6 +21,7 @@ import type {
   VillageFeature,
   VillageFeatureCollection,
 } from "@/types/geo"
+import type { VillageStatistic } from "@/types/village"
 
 type BoundaryState =
   | {
@@ -123,6 +124,8 @@ export function DashboardShell() {
   const [displayMode, setDisplayMode] =
     useState<MapDisplayMode>("overlay")
   const [mapError, setMapError] = useState<string | null>(null)
+  // Holds the live Sheets data for ALL villages, mapping desa_id -> { field_key: value }
+  const [liveVillagesData, setLiveVillagesData] = useState<Record<string, Record<string, number>> | null>(null)
   const { selectedVillageId, selectVillage, clearSelection } =
     useVillageSelection(villageIds)
 
@@ -220,7 +223,49 @@ export function DashboardShell() {
     return () => controller.abort()
   }, [])
 
-  const selectedVillage = getVillageById(selectedVillageId, activeDataset.villages)
+  // Fetch live monografi data for all villages from Google Sheets on mount
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`/api/monografi/latest`, { signal: controller.signal })
+      .then(res => res.ok ? res.json() : null)
+      .then(json => {
+        if (json?.data) setLiveVillagesData(json.data)
+      })
+      .catch(() => { /* ignore abort errors */ })
+    return () => controller.abort()
+  }, [])
+
+  // Merge static village metadata with live Sheets data for ALL villages
+  const mergedVillages = useMemo(() => {
+    return activeDataset.villages.map(base => {
+      const liveData = liveVillagesData?.[base.id]
+      if (!liveData) return base
+      
+      return {
+        ...base,
+        population: liveData.population ?? base.population,
+        households: liveData.households ?? base.households,
+        areaKm2: liveData.areaKm2 ?? base.areaKm2,
+        malePopulation: liveData.malePopulation ?? base.malePopulation,
+        femalePopulation: liveData.femalePopulation ?? base.femalePopulation,
+        infrastructure: liveData.schools !== undefined ? {
+          schools: liveData.schools ?? base.infrastructure?.schools ?? null,
+          healthFacilities: liveData.healthFacilities ?? base.infrastructure?.healthFacilities ?? null,
+          worshipPlaces: liveData.worshipPlaces ?? base.infrastructure?.worshipPlaces ?? null,
+        } : base.infrastructure,
+        economy: liveData.umkm !== undefined ? {
+          umkm: liveData.umkm ?? base.economy?.umkm ?? null,
+          agriculture: liveData.agriculture ?? base.economy?.agriculture ?? null,
+          industry: liveData.industry ?? base.economy?.industry ?? null,
+        } : base.economy,
+        dataStatus: 'official' as const,
+      }
+    })
+  }, [liveVillagesData])
+
+  const selectedVillage = useMemo(() => {
+    return getVillageById(selectedVillageId, mergedVillages)
+  }, [selectedVillageId, mergedVillages])
   const boundaryFeatures = boundary.data?.features ?? []
   const boundaryCount = boundaryFeatures.filter(isFeatureGeometryReady).length
   const colorMap = useMemo(
@@ -312,7 +357,7 @@ export function DashboardShell() {
           <div className="map-toolbar">
             <div className="map-action-row">
               <VillageList
-                villages={activeDataset.villages}
+                villages={mergedVillages}
                 unitLabel={activeDataset.unitLabel}
                 unitLabelPlural={activeDataset.unitLabelPlural}
                 selectedVillageId={selectedVillageId}
