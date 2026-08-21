@@ -3,9 +3,9 @@ import "maplibre-gl/dist/maplibre-gl.css"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Atlas Geography — Peta Batas & Statistik",
+  title: "Monografi Kecamatan Bandongan",
   description:
-    "Infografis geografis interaktif untuk menguji boundary GeoJSON dan statistik wilayah.",
+    "Infografis Monografi Kecamatan Bandongan",
 }
 
 export default function RootLayout({

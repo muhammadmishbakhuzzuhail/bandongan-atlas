@@ -57,8 +57,8 @@ export async function GET(
       rawData[indikatorId] = nilai;
 
       const indikator = indikatorMap.get(indikatorId);
-      if (indikator?.field_key) {
-        fieldData[indikator.field_key] = nilai;
+      if (indikator) {
+        fieldData[indikator.id] = nilai;
       }
 
       // Track the most recent period overall

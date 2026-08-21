@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 
 interface FormModalProps {
@@ -11,47 +11,55 @@ interface FormModalProps {
 }
 
 export function FormModal({ isOpen, title, onClose, children }: FormModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (isOpen) {
-      if (!dialog.open) dialog.showModal();
-    } else {
-      if (dialog.open) dialog.close();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const handleClose = () => onClose();
-    dialog.addEventListener('close', handleClose);
-    return () => dialog.removeEventListener('close', handleClose);
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
   }, [onClose]);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, handleKeyDown]);
+
+  if (!isOpen) return null;
+
   return (
-    <dialog
-      ref={dialogRef}
-      className="w-full max-w-lg rounded-xl bg-white p-0 shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
-      style={{ border: 'none' }}
-      onClick={(e) => { if (e.target === dialogRef.current) onClose(); }}
-    >
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#173B39]/10">
-        <h2 className="text-base font-semibold text-[#173B39]">{title}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-[#173B39]/50 hover:text-[#173B39] transition-colors p-1 rounded"
-          aria-label="Tutup"
-        >
-          <X size={18} />
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Modal Dialog Box */}
+      <div 
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 animate-in fade-in zoom-in-95 duration-200"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#173B39]/10 shrink-0 bg-white sticky top-0 z-10">
+          <h2 className="text-base sm:text-lg font-bold text-[#173B39] tracking-tight">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#173B39]/50 hover:text-[#173B39] hover:bg-gray-100 active:bg-gray-200 transition-colors p-2 rounded-xl"
+            aria-label="Tutup"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="px-5 sm:px-6 py-5 overflow-y-auto flex-1 overscroll-contain">
+          {children}
+        </div>
       </div>
-      <div className="px-6 py-5">
-        {children}
-      </div>
-    </dialog>
+    </div>
   );
 }

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Pencil, Trash2, MapPin, Search } from 'lucide-react';
+import { Pencil, Trash2, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { Pagination } from '@/components/admin/Pagination';
 import { FormModal } from '@/components/admin/FormModal';
 import { MasterDesa } from '@/types/database';
+import { AdminHeader, AdminFilterContainer, AdminSearchInput, AdminTableContainer, AdminTableHead, AdminTh, AdminSortIcon, AdminTr, AdminTd, AdminButton, AdminTableSkeleton, AdminEmptyRow } from '@/components/admin/TableLayout';
 
 const PAGE_SIZE = 10;
 
@@ -17,11 +18,17 @@ interface FormState {
 
 const defaultForm = (): FormState => ({ id: '', nama_desa: '', slug: '', nama_kecamatan: 'Kecamatan Bandongan' });
 
+type SortColumn = 'id' | 'nama' | 'slug';
+
 export default function DesaPage() {
   const [items, setItems] = useState<MasterDesa[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+
+  const [sortCol, setSortCol] = useState<SortColumn>('nama');
+  const [sortAsc, setSortAsc] = useState(true);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(defaultForm());
@@ -39,12 +46,25 @@ export default function DesaPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const filtered = useMemo(() =>
-    items.filter(i => !search || i.nama_desa.toLowerCase().includes(search.toLowerCase()) || i.id.includes(search)),
-    [items, search]
-  );
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const filteredAndSorted = useMemo(() => {
+    const filtered = items.filter(i =>
+      !search ||
+      i.nama_desa.toLowerCase().includes(search.toLowerCase()) ||
+      i.id.includes(search)
+    );
+
+    return filtered.sort((a, b) => {
+      let cmp = 0;
+      if (sortCol === 'id') cmp = a.id.localeCompare(b.id);
+      else if (sortCol === 'nama') cmp = a.nama_desa.localeCompare(b.nama_desa);
+      else if (sortCol === 'slug') cmp = a.slug.localeCompare(b.slug);
+
+      return sortAsc ? cmp : -cmp;
+    });
+  }, [items, search, sortCol, sortAsc]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / PAGE_SIZE));
+  const paginated = filteredAndSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openAdd = () => { setEditId(null); setForm(defaultForm()); setModalOpen(true); };
   const openEdit = (item: MasterDesa) => {
@@ -75,92 +95,85 @@ export default function DesaPage() {
     fetchAll();
   };
 
+  const handleSort = (col: SortColumn) => {
+    if (sortCol === col) setSortAsc(!sortAsc);
+    else { setSortCol(col); setSortAsc(true); }
+    setPage(1);
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#173B39] flex items-center gap-2">
-            <MapPin size={20} className="text-[#1E716A]" />
-            Master Desa
-          </h1>
-          <p className="text-sm text-[#173B39]/60 mt-0.5">{items.length} desa terdaftar</p>
-        </div>
-        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-[#1E716A] text-white rounded-lg text-sm font-medium hover:bg-[#1E716A]/90 transition-colors">
-          <Plus size={16} /> Tambah Desa
-        </button>
-      </div>
+    <div className="space-y-6">
+      <AdminHeader 
+        title="Master Desa" 
+        subtitle={`${filteredAndSorted.length} desa terdaftar`} 
+        action={<AdminButton onClick={openAdd}>Tambah +</AdminButton>}
+      />
 
-      <div className="bg-white rounded-xl border border-[#173B39]/10 p-4">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#173B39]/40" />
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Cari nama desa atau ID…" className="pl-9 pr-3 py-2 w-full border border-[#173B39]/15 rounded-lg text-sm text-[#173B39] placeholder:text-[#173B39]/40 focus:outline-none focus:ring-1 focus:ring-[#1E716A]" />
-        </div>
-      </div>
+      <AdminFilterContainer>
+        <AdminSearchInput 
+          value={search} 
+          onChange={val => { setSearch(val); setPage(1); }} 
+          placeholder="Cari nama desa atau ID..." 
+        />
+      </AdminFilterContainer>
 
-      <div className="bg-white rounded-xl border border-[#173B39]/10 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[#EEF3F0] text-[#173B39]/70 text-xs font-medium uppercase tracking-wide">
-                <th className="px-4 py-3 text-left">ID (Kemendagri)</th>
-                <th className="px-4 py-3 text-left">Nama Desa</th>
-                <th className="px-4 py-3 text-left">Slug</th>
-                <th className="px-4 py-3 text-left">Kecamatan</th>
-                <th className="px-4 py-3 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-t border-[#173B39]/5">
-                    {Array.from({ length: 5 }).map((__, j) => <td key={j} className="px-4 py-3"><div className="h-4 bg-[#D9E8E5] rounded animate-pulse" /></td>)}
-                  </tr>
-                ))
-              ) : paginated.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-12 text-center text-[#173B39]/50 text-sm"><MapPin size={32} className="mx-auto mb-2 opacity-30" />Belum ada data desa.</td></tr>
-              ) : paginated.map(item => (
-                <tr key={item.id} className="border-t border-[#173B39]/5 hover:bg-[#EEF3F0]/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-[#173B39]/60">{item.id}</td>
-                  <td className="px-4 py-3 font-medium text-[#173B39]">{item.nama_desa}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-[#173B39]/60">{item.slug}</td>
-                  <td className="px-4 py-3 text-[#173B39]/70">{item.nama_kecamatan}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openEdit(item)} className="p-1.5 rounded text-[#1E716A] hover:bg-[#1E716A]/10 transition-colors" aria-label="Edit"><Pencil size={15} /></button>
-                      <button onClick={() => handleDelete(item.id)} disabled={deleteId === item.id} className="p-1.5 rounded text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40" aria-label="Hapus"><Trash2 size={15} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <AdminTableContainer currentPage={page} totalPages={totalPages} onPageChange={setPage}>
+        <AdminTableHead>
+          <AdminTh className="text-left" onClick={() => handleSort('id')} sortable>ID <AdminSortIcon active={sortCol === 'id'} asc={sortAsc} /></AdminTh>
+          <AdminTh className="text-left" onClick={() => handleSort('nama')} sortable>Nama Desa <AdminSortIcon active={sortCol === 'nama'} asc={sortAsc} /></AdminTh>
+          <AdminTh className="text-left" onClick={() => handleSort('slug')} sortable>Slug <AdminSortIcon active={sortCol === 'slug'} asc={sortAsc} /></AdminTh>
+          <AdminTh className="text-left">Kecamatan</AdminTh>
+          <AdminTh className="text-center">Aksi</AdminTh>
+        </AdminTableHead>
+        <tbody>
+          {loading ? (
+            <AdminTableSkeleton rows={PAGE_SIZE} cols={5} />
+          ) : paginated.length === 0 ? (
+            <AdminEmptyRow colSpan={5}>
+              Belum ada data desa. Klik <strong className="text-[#173B39]">Tambah +</strong> untuk memulai.
+            </AdminEmptyRow>
+          ) : (
+            paginated.map(item => (
+              <AdminTr key={item.id}>
+                <AdminTd className="font-mono text-sm text-[#173B39]/60">{item.id}</AdminTd>
+                <AdminTd className="font-medium text-[#173B39] text-[0.9rem]">{item.nama_desa}</AdminTd>
+                <AdminTd className="font-mono text-sm text-[#173B39]/60">{item.slug}</AdminTd>
+                <AdminTd className="text-[#173B39]/70 text-[0.9rem]">{item.nama_kecamatan}</AdminTd>
+                <AdminTd>
+                  <div className="flex items-center justify-center gap-2">
+                    <button onClick={() => openEdit(item)} className="p-2 rounded-lg text-[#1E716A] hover:bg-[#1E716A]/10 transition-colors" aria-label="Edit"><Pencil size={16} /></button>
+                    <button onClick={() => handleDelete(item.id)} disabled={deleteId === item.id} className="p-2 rounded-lg text-[#a8453f] hover:bg-[#a8453f]/10 transition-colors disabled:opacity-40" aria-label="Hapus"><Trash2 size={16} /></button>
+                  </div>
+                </AdminTd>
+              </AdminTr>
+            ))
+          )}
+        </tbody>
+      </AdminTableContainer>
 
       <FormModal isOpen={modalOpen} title={editId ? 'Edit Data Desa' : 'Tambah Desa Baru'} onClose={() => setModalOpen(false)}>
-        <form onSubmit={handleSave} className="space-y-4">
+        <form onSubmit={handleSave} className="space-y-4 sm:space-y-5">
           {!editId && (
             <div>
-              <label className="block text-xs font-medium text-[#173B39]/70 mb-1">ID Kemendagri (10 digit)</label>
-              <input required value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))} className="w-full px-3 py-2 border border-[#173B39]/20 rounded-lg text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#1E716A] text-[#173B39]" placeholder="3308142015" />
+              <label className="block text-xs font-bold text-[#173B39] uppercase tracking-wider mb-1.5">ID Kemendagri (10 digit)</label>
+              <input required value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))} className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#173B39]/10 rounded-xl text-base sm:text-[0.9rem] font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1E716A]/20 focus:border-[#1E716A] text-[#173B39] transition-colors" placeholder="3308142015" />
             </div>
           )}
           <div>
-            <label className="block text-xs font-medium text-[#173B39]/70 mb-1">Nama Desa</label>
-            <input required value={form.nama_desa} onChange={e => setForm(f => ({ ...f, nama_desa: e.target.value }))} className="w-full px-3 py-2 border border-[#173B39]/20 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1E716A] text-[#173B39]" placeholder="Bandongan" />
+            <label className="block text-xs font-bold text-[#173B39] uppercase tracking-wider mb-1.5">Nama Desa</label>
+            <input required value={form.nama_desa} onChange={e => setForm(f => ({ ...f, nama_desa: e.target.value }))} className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#173B39]/10 rounded-xl text-base sm:text-[0.9rem] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1E716A]/20 focus:border-[#1E716A] text-[#173B39] transition-colors" placeholder="Contoh: Bandongan" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#173B39]/70 mb-1">Slug (URL)</label>
-            <input required value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} className="w-full px-3 py-2 border border-[#173B39]/20 rounded-lg text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#1E716A] text-[#173B39]" placeholder="bandongan" />
+            <label className="block text-xs font-bold text-[#173B39] uppercase tracking-wider mb-1.5">Slug (URL)</label>
+            <input required value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#173B39]/10 rounded-xl text-base sm:text-[0.9rem] font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1E716A]/20 focus:border-[#1E716A] text-[#173B39] transition-colors" placeholder="bandongan" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#173B39]/70 mb-1">Kecamatan</label>
-            <input required value={form.nama_kecamatan} onChange={e => setForm(f => ({ ...f, nama_kecamatan: e.target.value }))} className="w-full px-3 py-2 border border-[#173B39]/20 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1E716A] text-[#173B39]" placeholder="Kecamatan Bandongan" />
+            <label className="block text-xs font-bold text-[#173B39] uppercase tracking-wider mb-1.5">Kecamatan</label>
+            <input required value={form.nama_kecamatan} onChange={e => setForm(f => ({ ...f, nama_kecamatan: e.target.value }))} className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#173B39]/10 rounded-xl text-base sm:text-[0.9rem] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1E716A]/20 focus:border-[#1E716A] text-[#173B39] transition-colors" placeholder="Kecamatan Bandongan" />
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-[#173B39]/70 border border-[#173B39]/20 rounded-lg hover:bg-[#EEF3F0] transition-colors">Batal</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-[#1E716A] text-white rounded-lg hover:bg-[#1E716A]/90 transition-colors disabled:opacity-50">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-[#173B39]/5">
+            <button type="button" onClick={() => setModalOpen(false)} className="w-full sm:w-auto px-5 py-2.5 text-[0.9rem] font-semibold text-[#173B39]/70 bg-[#F9FAFB] border border-[#173B39]/10 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors">Batal</button>
+            <button type="submit" disabled={saving} className="w-full sm:w-auto px-5 py-2.5 text-[0.9rem] font-semibold bg-[#1E716A] text-white rounded-xl hover:bg-[#155A55] active:scale-[0.98] transition-all disabled:opacity-50 shadow-sm">
               {saving ? 'Menyimpan…' : 'Simpan'}
             </button>
           </div>

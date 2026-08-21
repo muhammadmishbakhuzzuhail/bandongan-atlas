@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --atlas-canvas: #eef3f0;
+  --atlas-canvas: #ffffff;
   --atlas-surface: #ffffff;
-  --atlas-surface-muted: #f5f8f6;
+  --atlas-surface-muted: #f9fafb;
   --atlas-ink: #173b39;
   --atlas-ink-soft: #58716d;
   --atlas-ink-faint: #829690;
@@ -41,13 +41,19 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
-button {
-  color: inherit;
+select::-ms-expand {
+  display: none;
 }
+
+
 
 button:focus-visible,
 input:focus-visible {
@@ -1127,7 +1133,7 @@ input:focus-visible {
   max-width: 268px;
   padding: 0;
   border: 1px solid rgba(191, 209, 204, 0.98);
-  border-radius: 11px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 12px 28px rgba(12, 44, 40, 0.16);
 }
@@ -1146,7 +1152,7 @@ input:focus-visible {
   width: min(350px, calc(100vw - 24px));
   padding: 0;
   border: 1px solid var(--atlas-line);
-  border-radius: 16px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: var(--atlas-shadow);
 }
@@ -1160,11 +1166,11 @@ input:focus-visible {
 }
 
 .village-info-popup .maplibregl-popup-content {
-  width: min(390px, calc(100vw - 24px));
+  width: min(280px, calc(100vw - 24px));
   padding: 0;
   overflow: hidden;
   border: 0;
-  border-radius: 20px;
+  border-radius: 12px;
   background: transparent;
   box-shadow: none;
 }
@@ -1390,7 +1396,7 @@ input:focus-visible {
   min-width: 0;
   padding: 7px 7px 8px;
   border: 1px solid var(--atlas-line);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--atlas-surface-muted);
 }
 
@@ -1399,9 +1405,12 @@ input:focus-visible {
   align-items: center;
   gap: 4px;
   color: var(--atlas-teal-dark);
-  font-size: 0.56rem;
-  font-weight: 720;
-  line-height: 1.1;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  opacity: 0.8;
 }
 
 .popup-stat-label svg {
@@ -1409,28 +1418,30 @@ input:focus-visible {
 }
 
 .popup-stat strong {
-  display: block;
-  margin-top: 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-top: 6px;
   overflow: hidden;
   color: var(--atlas-ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
+  font-family: inherit;
+  font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 760;
-  letter-spacing: -0.03em;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .infographic-dialog {
-  width: min(390px, calc(100vw - 24px));
-  max-height: min(64dvh, 500px);
+  width: min(280px, calc(100vw - 24px));
+  max-height: min(60dvh, 400px);
   overflow: auto;
-  padding: 20px;
-  border: 1px solid rgba(191, 209, 204, 0.98);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 24px 70px rgba(12, 44, 40, 0.25);
+  padding: 12px 12px 14px;
+  border: 1px solid rgba(191, 209, 204, 0.4);
+  border-radius: 12px;
+  background: #fcfdfc;
+  box-shadow: 0 10px 30px rgba(23, 59, 57, 0.1), 0 4px 10px rgba(23, 59, 57, 0.05);
   scrollbar-color: var(--atlas-line-strong) transparent;
   scrollbar-width: thin;
 }
@@ -1447,68 +1458,81 @@ input:focus-visible {
 .dialog-header {
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .dialog-heading {
   min-width: 0;
   align-items: flex-start;
-  gap: 11px;
+  gap: 8px;
 }
 
 .dialog-color-swatch {
-  width: 15px;
-  height: 15px;
+  width: 12px;
+  height: 12px;
   flex: 0 0 auto;
-  margin-top: 5px;
-  border: 1px solid rgba(23, 59, 57, 0.34);
-  border-radius: 5px;
+  margin-top: 3px;
+  border: 1px solid rgba(23, 59, 57, 0.15);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25);
+}
+
+.dialog-heading > div {
+  display: flex;
+  flex-direction: column;
 }
 
 .dialog-kicker {
   margin: 0;
   color: var(--atlas-teal-dark);
-  font-size: 0.62rem;
+  font-size: 0.5rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
-  line-height: 1.1;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
   text-transform: uppercase;
 }
 
 .dialog-heading h2 {
-  margin: 6px 0 3px;
+  margin: 2px 0 1px;
   color: var(--atlas-ink);
-  font-size: 1.55rem;
-  font-weight: 790;
-  letter-spacing: -0.045em;
+  font-size: 1.1rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
   line-height: 1.05;
 }
 
 .dialog-heading p:last-child {
   margin: 0;
   color: var(--atlas-ink-soft);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   line-height: 1.4;
 }
 
 .dialog-close-button {
   display: inline-flex;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--atlas-line);
-  border-radius: 10px;
-  background: var(--atlas-surface-muted);
+  border-radius: 6px;
+  background: var(--atlas-surface);
   color: var(--atlas-ink-soft);
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+.dialog-close-button svg {
+  width: 14px;
+  height: 14px;
 }
 
 .dialog-close-button:hover {
   border-color: var(--atlas-line-strong);
   background: var(--atlas-teal-soft);
   color: var(--atlas-teal-dark);
+  transform: scale(1.05);
 }
 
 .dialog-badges {
@@ -1540,34 +1564,41 @@ input:focus-visible {
 .dialog-stat-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .dialog-stat {
   min-width: 0;
-  padding: 13px 12px 14px;
-  border: 1px solid var(--atlas-line);
-  border-radius: 13px;
-  background: var(--atlas-surface-muted);
+  padding: 8px 10px;
+  border: 1px solid rgba(23, 59, 57, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(23, 59, 57, 0.02);
 }
 
 .dialog-stat-label {
-  gap: 7px;
+  display: block;
   color: var(--atlas-teal-dark);
-  font-size: 0.68rem;
-  font-weight: 720;
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  opacity: 0.85;
 }
 
 .dialog-stat strong {
-  display: block;
-  margin-top: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 6px;
   overflow: hidden;
   color: var(--atlas-ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 1.05rem;
+  font-family: inherit;
+  font-size: 1.2rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 760;
-  letter-spacing: -0.045em;
+  font-weight: 850;
+  letter-spacing: -0.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1575,15 +1606,15 @@ input:focus-visible {
 .dialog-supporting {
   display: grid;
   gap: 8px;
-  margin-top: 14px;
-  padding-top: 13px;
+  margin-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid var(--atlas-line);
 }
 
 .dialog-supporting span {
   gap: 7px;
   color: var(--atlas-ink-soft);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
 }
 
 .dialog-supporting span svg {
@@ -1595,29 +1626,29 @@ input:focus-visible {
   margin-left: auto;
   color: var(--atlas-ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.69rem;
+  font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
 }
 
 .dialog-disclaimer {
-  margin: 16px 0 0;
-  padding-top: 12px;
+  margin: 18px 0 0;
+  padding-top: 14px;
   border-top: 1px solid var(--atlas-line);
   color: var(--atlas-ink-faint);
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   line-height: 1.5;
 }
 
 .dialog-source {
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   color: var(--atlas-ink-soft);
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   line-height: 1.5;
 }
 
 .dialog-missing-state {
-  margin-top: 14px;
-  padding: 13px;
+  margin-top: 16px;
+  padding: 16px;
   border: 1px solid #e7cfaa;
   border-radius: 12px;
   background: #fffbf4;
@@ -1625,13 +1656,13 @@ input:focus-visible {
 
 .dialog-missing-state strong {
   color: #765022;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
 .dialog-missing-state p {
-  margin: 5px 0 0;
+  margin: 6px 0 0;
   color: #936a39;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   line-height: 1.5;
 }
 
@@ -1803,26 +1834,34 @@ input:focus-visible {
   }
 
   .village-info-popup .maplibregl-popup-content {
-    width: min(330px, calc(100vw - 24px));
+    width: min(350px, calc(100vw - 24px));
   }
 
   .village-info-popup .infographic-dialog {
-    width: min(330px, calc(100vw - 24px));
-    max-height: min(58dvh, 460px);
-    padding: 14px;
-    border-radius: 17px;
+    width: min(350px, calc(100vw - 24px));
+    max-height: min(65dvh, 480px);
+    padding: 16px 16px;
+    border-radius: 14px;
+  }
+
+  .dialog-kicker {
+    font-size: 0.62rem;
   }
 
   .dialog-heading h2 {
-    font-size: 1.34rem;
+    font-size: 1.55rem;
   }
 
   .dialog-stat {
-    padding: 11px 10px 12px;
+    padding: 12px 12px;
+  }
+
+  .dialog-stat-label {
+    font-size: 0.62rem;
   }
 
   .dialog-stat strong {
-    font-size: 0.93rem;
+    font-size: 1.5rem;
   }
 
   .info-panel {

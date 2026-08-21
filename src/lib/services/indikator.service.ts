@@ -12,7 +12,6 @@ export async function getActiveIndikator(): Promise<MasterIndikator[]> {
       nama_indikator: row.get('nama_indikator'),
       satuan: row.get('satuan'),
       is_active: true,
-      field_key: row.get('field_key') || undefined,
     }));
 }
 
@@ -25,7 +24,5 @@ export async function getAllIndikator(): Promise<MasterIndikator[]> {
     nama_indikator: row.get('nama_indikator'),
     satuan: row.get('satuan'),
     is_active: row.get('is_active') === 'TRUE' || row.get('is_active') === 'true',
-    field_key: row.get('field_key') || undefined,
   }));
 }
-

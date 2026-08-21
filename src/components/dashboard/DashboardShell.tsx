@@ -22,6 +22,7 @@ import type {
   VillageFeatureCollection,
 } from "@/types/geo"
 import type { VillageStatistic } from "@/types/village"
+import type { MasterIndikator } from "@/types/database"
 
 type BoundaryState =
   | {
@@ -126,6 +127,7 @@ export function DashboardShell() {
   const [mapError, setMapError] = useState<string | null>(null)
   // Holds the live Sheets data for ALL villages, mapping desa_id -> { field_key: value }
   const [liveVillagesData, setLiveVillagesData] = useState<Record<string, Record<string, number>> | null>(null)
+  const [liveIndicators, setLiveIndicators] = useState<MasterIndikator[]>([])
   const { selectedVillageId, selectVillage, clearSelection } =
     useVillageSelection(villageIds)
 
@@ -230,6 +232,7 @@ export function DashboardShell() {
       .then(res => res.ok ? res.json() : null)
       .then(json => {
         if (json?.data) setLiveVillagesData(json.data)
+        if (json?.indicators) setLiveIndicators(json.indicators)
       })
       .catch(() => { /* ignore abort errors */ })
     return () => controller.abort()
@@ -259,6 +262,7 @@ export function DashboardShell() {
           industry: liveData.industry ?? base.economy?.industry ?? null,
         } : base.economy,
         dataStatus: 'official' as const,
+        monografiData: liveData,
       }
     })
   }, [liveVillagesData])
@@ -349,6 +353,7 @@ export function DashboardShell() {
             selectedVillage={selectedVillage}
             dataset={activeDataset}
             fallbackViewState={activeDataset.fallbackViewState}
+            indicators={liveIndicators}
             onSelectVillage={handleSelectVillage}
             onClearSelection={handleClearSelection}
             onMapError={setMapError}

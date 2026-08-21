@@ -36,4 +36,5 @@ export interface VillageStatistic {
   dataStatus: "illustrative" | "official"
   dataYear?: number
   sourceLabel?: string
+  monografiData?: Record<string, number>
 }

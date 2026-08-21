@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { nama_indikator, satuan, field_key, is_active } = body;
+    const { nama_indikator, satuan, is_active } = body;
 
     if (!nama_indikator || !satuan) {
       return NextResponse.json({ error: 'nama_indikator and satuan are required' }, { status: 400 });
@@ -47,12 +47,11 @@ export async function POST(request: Request) {
       nama_indikator,
       satuan,
       is_active: is_active !== false ? 'TRUE' : 'FALSE',
-      field_key: field_key || '',
     });
 
     await createAuditLog(payload.userId as string, 'CREATE', 'MASTER_INDIKATOR', `Created indikator ${nama_indikator}`);
 
-    return NextResponse.json({ data: { id, nama_indikator, satuan, field_key, is_active: is_active !== false } }, { status: 201 });
+    return NextResponse.json({ data: { id, nama_indikator, satuan, is_active: is_active !== false } }, { status: 201 });
   } catch (error) {
     console.error('Failed to create indikator:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

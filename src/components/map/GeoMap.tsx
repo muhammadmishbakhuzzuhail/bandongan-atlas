@@ -32,6 +32,7 @@ import type {
 } from "@/types/geo"
 import type { GeographicDataset } from "@/types/dataset"
 import type { RegionColorMap } from "@/lib/region-colors"
+import type { MasterIndikator } from "@/types/database"
 import type { VillageStatistic } from "@/types/village"
 import { BasemapLayer } from "@/components/map/BasemapLayer"
 import { ContextBoundaryLayer } from "@/components/map/ContextBoundaryLayer"
@@ -59,6 +60,7 @@ interface GeoMapProps {
   displayMode: MapDisplayMode
   selectedVillageId: string | null
   selectedVillage: VillageStatistic | undefined
+  indicators: MasterIndikator[]
   dataset: GeographicDataset
   fallbackViewState: ViewState
   onSelectVillage: (id: string) => void
@@ -93,6 +95,7 @@ export function GeoMap({
   displayMode,
   selectedVillageId,
   selectedVillage,
+  indicators,
   dataset,
   fallbackViewState,
   onSelectVillage,
@@ -494,6 +497,7 @@ export function GeoMap({
             latitude={hover.latitude}
             name={hover.name}
             village={hoveredVillage}
+            indicators={indicators}
           />
         )}
         {mapReady && selectedVillageId && selectedCoordinate && (
@@ -501,6 +505,7 @@ export function GeoMap({
             longitude={selectedCoordinate[0]}
             latitude={selectedCoordinate[1]}
             accentColor={colorMap[selectedVillageId] ?? "#B8DCCB"}
+            indicators={indicators}
             dataset={dataset}
             village={selectedVillage}
             feature={selectedFeature}

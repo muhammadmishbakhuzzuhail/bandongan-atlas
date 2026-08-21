@@ -51,14 +51,18 @@ export async function GET() {
       const fieldData: Record<string, number> = {};
       for (const [indikatorId, { nilai }] of desaMap) {
         const indikator = indikatorMap.get(indikatorId);
-        if (indikator?.field_key) {
-          fieldData[indikator.field_key] = nilai;
+        if (indikator) {
+          fieldData[indikator.id] = nilai;
         }
       }
       result[desaId] = fieldData;
     }
 
-    return NextResponse.json({ data: result });
+    // Return both the mapped data and the list of active indicators
+    return NextResponse.json({ 
+      data: result,
+      indicators: indikators
+    });
   } catch (error) {
     console.error('Failed to fetch latest monografi:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

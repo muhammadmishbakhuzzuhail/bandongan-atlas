@@ -22,8 +22,6 @@ export interface MasterIndikator {
   nama_indikator: string;
   satuan: string;
   is_active: boolean;
-  // Maps to a known field in VillageStatistic (e.g. "population", "households", "areaKm2")
-  field_key?: string;
 }
 
 export interface MasterDesa {

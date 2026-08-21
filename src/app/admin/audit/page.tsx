@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ClipboardList, Search } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { Pagination } from '@/components/admin/Pagination';
+import { AdminHeader, AdminFilterContainer, AdminSearchInput, AdminTableContainer, AdminTableHead, AdminTh, AdminSortIcon, AdminTr, AdminTd, AdminButton, AdminTableSkeleton, AdminEmptyRow } from '@/components/admin/TableLayout';
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 interface AuditLog {
   id: string;
@@ -16,11 +17,11 @@ interface AuditLog {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  LOGIN: 'bg-blue-50 text-blue-700',
-  CREATE: 'bg-green-50 text-green-700',
-  UPDATE: 'bg-amber-50 text-amber-700',
-  UPSERT: 'bg-amber-50 text-amber-700',
-  DELETE: 'bg-red-50 text-red-700',
+  LOGIN: 'bg-blue-50 text-blue-700 border border-blue-200',
+  CREATE: 'bg-green-50 text-green-700 border border-green-200',
+  UPDATE: 'bg-amber-50 text-amber-700 border border-amber-200',
+  UPSERT: 'bg-amber-50 text-amber-700 border border-amber-200',
+  DELETE: 'bg-red-50 text-red-700 border border-red-200',
 };
 
 function formatDate(iso: string) {
@@ -29,11 +30,16 @@ function formatDate(iso: string) {
   return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+type SortColumn = 'waktu' | 'aksi' | 'tabel';
+
 export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  
+  const [sortCol, setSortCol] = useState<SortColumn>('waktu');
+  const [sortAsc, setSortAsc] = useState(false); // default descending for waktu
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -46,71 +52,77 @@ export default function AuditPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const filtered = useMemo(() =>
-    logs.filter(l => !search || [l.aksi, l.tabel_terdampak, l.keterangan, l.user_id].some(s => (s || '').toLowerCase().includes(search.toLowerCase()))),
-    [logs, search]
-  );
+  const filteredAndSorted = useMemo(() => {
+    const filtered = logs.filter(l => !search || [l.aksi, l.tabel_terdampak, l.keterangan, l.user_id].some(s => (s || '').toLowerCase().includes(search.toLowerCase())));
+    
+    return filtered.sort((a, b) => {
+      let cmp = 0;
+      if (sortCol === 'waktu') {
+        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sortCol === 'aksi') {
+        cmp = (a.aksi || '').localeCompare(b.aksi || '');
+      } else if (sortCol === 'tabel') {
+        cmp = (a.tabel_terdampak || '').localeCompare(b.tabel_terdampak || '');
+      }
+      return sortAsc ? cmp : -cmp;
+    });
+  }, [logs, search, sortCol, sortAsc]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / PAGE_SIZE));
+  const paginated = filteredAndSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleSort = (col: SortColumn) => {
+    if (sortCol === col) setSortAsc(!sortAsc);
+    else { setSortCol(col); setSortAsc(true); }
+    setPage(1);
+  };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#173B39] flex items-center gap-2">
-            <ClipboardList size={20} className="text-[#1E716A]" />
-            Log Aktivitas
-          </h1>
-          <p className="text-sm text-[#173B39]/60 mt-0.5">{logs.length} aktivitas tercatat (terbaru di atas)</p>
-        </div>
-        <button onClick={fetchAll} className="px-4 py-2 border border-[#173B39]/20 text-[#173B39]/70 rounded-lg text-sm font-medium hover:bg-[#EEF3F0] transition-colors">
-          Muat ulang
-        </button>
-      </div>
+    <div className="space-y-6">
+      <AdminHeader 
+        title="Log Aktivitas" 
+        subtitle={`${filteredAndSorted.length} aktivitas tercatat`} 
+        action={<AdminButton variant="secondary" onClick={fetchAll}>Muat Ulang</AdminButton>}
+      />
 
-      <div className="bg-white rounded-xl border border-[#173B39]/10 p-4">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#173B39]/40" />
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Cari aksi, tabel, keterangan…" className="pl-9 pr-3 py-2 w-full border border-[#173B39]/15 rounded-lg text-sm text-[#173B39] placeholder:text-[#173B39]/40 focus:outline-none focus:ring-1 focus:ring-[#1E716A]" />
-        </div>
-      </div>
+      <AdminFilterContainer>
+        <AdminSearchInput 
+          value={search} 
+          onChange={val => { setSearch(val); setPage(1); }} 
+          placeholder="Cari aksi, tabel, keterangan..." 
+        />
+      </AdminFilterContainer>
 
-      <div className="bg-white rounded-xl border border-[#173B39]/10 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[#EEF3F0] text-[#173B39]/70 text-xs font-medium uppercase tracking-wide">
-                <th className="px-4 py-3 text-left">Waktu</th>
-                <th className="px-4 py-3 text-left">Aksi</th>
-                <th className="px-4 py-3 text-left">Tabel</th>
-                <th className="px-4 py-3 text-left">Keterangan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="border-t border-[#173B39]/5">
-                    {Array.from({ length: 4 }).map((__, j) => <td key={j} className="px-4 py-3"><div className="h-4 bg-[#D9E8E5] rounded animate-pulse" /></td>)}
-                  </tr>
-                ))
-              ) : paginated.length === 0 ? (
-                <tr><td colSpan={4} className="px-4 py-12 text-center text-[#173B39]/50 text-sm"><ClipboardList size={32} className="mx-auto mb-2 opacity-30" />Belum ada log aktivitas.</td></tr>
-              ) : paginated.map(log => (
-                <tr key={log.id} className="border-t border-[#173B39]/5 hover:bg-[#EEF3F0]/50 transition-colors">
-                  <td className="px-4 py-3 text-[#173B39]/60 text-xs whitespace-nowrap font-mono">{formatDate(log.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${ACTION_COLORS[log.aksi] ?? 'bg-gray-100 text-gray-700'}`}>{log.aksi}</span>
-                  </td>
-                  <td className="px-4 py-3 text-xs font-mono text-[#173B39]/60">{log.tabel_terdampak}</td>
-                  <td className="px-4 py-3 text-[#173B39]/80 text-xs max-w-xs truncate" title={log.keterangan}>{log.keterangan}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <AdminTableContainer currentPage={page} totalPages={totalPages} onPageChange={setPage}>
+        <AdminTableHead>
+          <AdminTh className="text-left" onClick={() => handleSort('waktu')} sortable>Waktu <AdminSortIcon active={sortCol === 'waktu'} asc={sortAsc} /></AdminTh>
+          <AdminTh className="text-left" onClick={() => handleSort('aksi')} sortable>Aksi <AdminSortIcon active={sortCol === 'aksi'} asc={sortAsc} /></AdminTh>
+          <AdminTh className="text-left" onClick={() => handleSort('tabel')} sortable>Tabel <AdminSortIcon active={sortCol === 'tabel'} asc={sortAsc} /></AdminTh>
+          <AdminTh className="text-left">Keterangan</AdminTh>
+        </AdminTableHead>
+        <tbody>
+          {loading ? (
+            <AdminTableSkeleton rows={PAGE_SIZE} cols={4} />
+          ) : paginated.length === 0 ? (
+            <AdminEmptyRow colSpan={4}>
+              Belum ada log aktivitas.
+            </AdminEmptyRow>
+          ) : (
+            paginated.map(log => (
+              <AdminTr key={log.id}>
+                <AdminTd className="text-[#173B39]/60 text-[0.85rem] whitespace-nowrap font-mono">{formatDate(log.created_at)}</AdminTd>
+                <AdminTd>
+                  <span className={`inline-flex px-2 py-1 rounded text-[0.7rem] font-bold uppercase tracking-wider ${ACTION_COLORS[log.aksi] ?? 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
+                    {log.aksi}
+                  </span>
+                </AdminTd>
+                <AdminTd className="text-[0.85rem] font-mono text-[#173B39]/60">{log.tabel_terdampak}</AdminTd>
+                <AdminTd className="text-[#173B39]/80 text-[0.9rem] max-w-xs truncate" title={log.keterangan}>{log.keterangan}</AdminTd>
+              </AdminTr>
+            ))
+          )}
+        </tbody>
+      </AdminTableContainer>
     </div>
   );
 }
