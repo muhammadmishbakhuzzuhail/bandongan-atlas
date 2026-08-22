@@ -40,8 +40,8 @@ const VILLAGE_FILL_OPACITY = {
   },
   satellite: {
     normal: 0,
-    hover: 0,
-    selected: 0,
+    hover: 0.18,
+    selected: 0.3,
   },
 } as const
 
@@ -153,156 +153,166 @@ export function VillageLayer({
 
   useEffect(() => {
     const map = mapRef?.getMap()
-    if (!map || !map.isStyleLoaded()) return
+    if (!map) return
 
-    const regionData = data as unknown as GeoJSON.FeatureCollection
-    const labelData = labels as unknown as GeoJSON.FeatureCollection
+    const syncLayers = () => {
+      if (!map.isStyleLoaded()) return
 
-    if (!map.getSource(VILLAGE_SOURCE_ID)) {
-      map.addSource(VILLAGE_SOURCE_ID, {
-        type: "geojson",
-        data: regionData,
-        promoteId: "id",
-      })
-    } else {
-      const source = map.getSource(VILLAGE_SOURCE_ID)
-      if (source?.type === "geojson") {
-        ;(source as GeoJSONSource).setData(regionData)
+      const regionData = data as unknown as GeoJSON.FeatureCollection
+      const labelData = labels as unknown as GeoJSON.FeatureCollection
+
+      if (!map.getSource(VILLAGE_SOURCE_ID)) {
+        map.addSource(VILLAGE_SOURCE_ID, {
+          type: "geojson",
+          data: regionData,
+          promoteId: "id",
+        })
+      } else {
+        const source = map.getSource(VILLAGE_SOURCE_ID)
+        if (source?.type === "geojson") {
+          ;(source as GeoJSONSource).setData(regionData)
+        }
+      }
+
+      if (!map.getSource(VILLAGE_LABEL_SOURCE_ID)) {
+        map.addSource(VILLAGE_LABEL_SOURCE_ID, {
+          type: "geojson",
+          data: labelData,
+        })
+      } else {
+        const source = map.getSource(VILLAGE_LABEL_SOURCE_ID)
+        if (source?.type === "geojson") {
+          ;(source as GeoJSONSource).setData(labelData)
+        }
+      }
+
+      const fillLayer: FillLayerSpecification = {
+        id: "village-fill",
+        type: "fill",
+        source: VILLAGE_SOURCE_ID,
+        paint: {
+          "fill-color": villageColorExpression,
+          "fill-opacity": getStateExpression(
+            selectedVillageId,
+            fillOpacity.selected,
+            fillOpacity.hover,
+            fillOpacity.normal,
+          ),
+        },
+      }
+      const borderLayer: LineLayerSpecification = {
+        id: "village-border",
+        type: "line",
+        source: VILLAGE_SOURCE_ID,
+        paint: {
+          "line-color": VILLAGE_BORDER_COLOR,
+          "line-width": villageBorderWidthExpression,
+          "line-opacity": villageBorderOpacityExpression,
+        },
+      }
+      const labelLayer: SymbolLayerSpecification = {
+        id: "village-label",
+        type: "symbol",
+        source: VILLAGE_LABEL_SOURCE_ID,
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            7,
+            11,
+            9,
+            12,
+            12,
+            14,
+            15,
+            16,
+          ],
+          "text-anchor": "center",
+          "text-allow-overlap": false,
+          "text-ignore-placement": false,
+          "text-padding": 4,
+        },
+        paint: {
+          "text-color": "#123A36",
+          "text-halo-color": "#FFFFFF",
+          "text-halo-width": 2.8,
+          "text-halo-blur": 0.1,
+        },
+      }
+      const selectedLabelLayer: SymbolLayerSpecification = {
+        id: "village-label-selected",
+        type: "symbol",
+        source: VILLAGE_LABEL_SOURCE_ID,
+        filter: selectedFilter,
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": 16,
+          "text-anchor": "center",
+          "text-allow-overlap": true,
+        },
+        paint: {
+          "text-color": "#102E2B",
+          "text-halo-color": "#FFFFFF",
+          "text-halo-width": 3,
+        },
+      }
+      const layers = [
+        fillLayer,
+        borderLayer,
+        labelLayer,
+        selectedLabelLayer,
+      ]
+
+      for (const layer of layers) {
+        if (!map.getLayer(layer.id)) map.addLayer(layer)
+      }
+
+      if (map.getLayer("village-fill")) {
+        map.setPaintProperty("village-fill", "fill-color", villageColorExpression)
+        map.setPaintProperty(
+          "village-fill",
+          "fill-opacity",
+          getStateExpression(
+            selectedVillageId,
+            fillOpacity.selected,
+            fillOpacity.hover,
+            fillOpacity.normal,
+          ),
+        )
+      }
+      if (map.getLayer("village-border")) {
+        map.setPaintProperty(
+          "village-border",
+          "line-color",
+          VILLAGE_BORDER_COLOR,
+        )
+        map.setPaintProperty(
+          "village-border",
+          "line-width",
+          villageBorderWidthExpression,
+        )
+        map.setPaintProperty(
+          "village-border",
+          "line-opacity",
+          villageBorderOpacityExpression,
+        )
+      }
+      if (map.getLayer("village-label-selected")) {
+        map.setFilter("village-label-selected", selectedFilter)
       }
     }
 
-    if (!map.getSource(VILLAGE_LABEL_SOURCE_ID)) {
-      map.addSource(VILLAGE_LABEL_SOURCE_ID, {
-        type: "geojson",
-        data: labelData,
-      })
-    } else {
-      const source = map.getSource(VILLAGE_LABEL_SOURCE_ID)
-      if (source?.type === "geojson") {
-        ;(source as GeoJSONSource).setData(labelData)
-      }
-    }
-
-    const fillLayer: FillLayerSpecification = {
-      id: "village-fill",
-      type: "fill",
-      source: VILLAGE_SOURCE_ID,
-      paint: {
-        "fill-color": villageColorExpression,
-        "fill-opacity": getStateExpression(
-          selectedVillageId,
-          fillOpacity.selected,
-          fillOpacity.hover,
-          fillOpacity.normal,
-        ),
-      },
-    }
-    const borderLayer: LineLayerSpecification = {
-      id: "village-border",
-      type: "line",
-      source: VILLAGE_SOURCE_ID,
-      paint: {
-        "line-color": VILLAGE_BORDER_COLOR,
-        "line-width": villageBorderWidthExpression,
-        "line-opacity": villageBorderOpacityExpression,
-      },
-    }
-    const labelLayer: SymbolLayerSpecification = {
-      id: "village-label",
-      type: "symbol",
-      source: VILLAGE_LABEL_SOURCE_ID,
-      layout: {
-        "text-field": ["get", "name"],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          7,
-          11,
-          9,
-          12,
-          12,
-          14,
-          15,
-          16,
-        ],
-        "text-anchor": "center",
-        "text-allow-overlap": false,
-        "text-ignore-placement": false,
-        "text-padding": 4,
-      },
-      paint: {
-        "text-color": "#123A36",
-        "text-halo-color": "#FFFFFF",
-        "text-halo-width": 2.8,
-        "text-halo-blur": 0.1,
-      },
-    }
-    const selectedLabelLayer: SymbolLayerSpecification = {
-      id: "village-label-selected",
-      type: "symbol",
-      source: VILLAGE_LABEL_SOURCE_ID,
-      filter: selectedFilter,
-      layout: {
-        "text-field": ["get", "name"],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": 16,
-        "text-anchor": "center",
-        "text-allow-overlap": true,
-      },
-      paint: {
-        "text-color": "#102E2B",
-        "text-halo-color": "#FFFFFF",
-        "text-halo-width": 3,
-      },
-    }
-    const layers = [
-      fillLayer,
-      borderLayer,
-      labelLayer,
-      selectedLabelLayer,
-    ]
-
-    for (const layer of layers) {
-      if (!map.getLayer(layer.id)) map.addLayer(layer)
-    }
-
-    if (map.getLayer("village-fill")) {
-      map.setPaintProperty("village-fill", "fill-color", villageColorExpression)
-      map.setPaintProperty(
-        "village-fill",
-        "fill-opacity",
-        getStateExpression(
-          selectedVillageId,
-          fillOpacity.selected,
-          fillOpacity.hover,
-          fillOpacity.normal,
-        ),
-      )
-    }
-    if (map.getLayer("village-border")) {
-      map.setPaintProperty(
-        "village-border",
-        "line-color",
-        VILLAGE_BORDER_COLOR,
-      )
-      map.setPaintProperty(
-        "village-border",
-        "line-width",
-        villageBorderWidthExpression,
-      )
-      map.setPaintProperty(
-        "village-border",
-        "line-opacity",
-        villageBorderOpacityExpression,
-      )
-    }
-    if (map.getLayer("village-label-selected")) {
-      map.setFilter("village-label-selected", selectedFilter)
-    }
+    syncLayers()
+    map.on("styledata", syncLayers)
+    map.on("idle", syncLayers)
 
     return () => {
+      map.off("styledata", syncLayers)
+      map.off("idle", syncLayers)
       if (map.isStyleLoaded()) removeLayersAndSources(map)
     }
   }, [

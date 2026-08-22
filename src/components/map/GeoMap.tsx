@@ -41,6 +41,7 @@ import { MapControls } from "@/components/map/MapControls"
 import { VillageInfoDialog } from "@/components/map/VillageInfoDialog"
 import { VillageLayer } from "@/components/map/VillageLayer"
 import { VillagePopup } from "@/components/map/VillagePopup"
+import { InfographicOverlay } from "@/components/map/InfographicOverlay"
 
 interface HoverState {
   id: string
@@ -58,14 +59,17 @@ interface GeoMapProps {
   outsideMask: VillageFeatureCollection | null
   colorMap: RegionColorMap
   displayMode: MapDisplayMode
+  viewMode: "interactive" | "infographic"
   selectedVillageId: string | null
   selectedVillage: VillageStatistic | undefined
   indicators: MasterIndikator[]
   dataset: GeographicDataset
+  villages: VillageStatistic[]
   fallbackViewState: ViewState
   onSelectVillage: (id: string) => void
   onClearSelection: () => void
   onMapError?: (message: string) => void
+  toolbar?: React.ReactNode
 }
 
 function toMapBounds(bounds: GeoBounds): LngLatBoundsLike {
@@ -93,14 +97,17 @@ export function GeoMap({
   outsideMask,
   colorMap,
   displayMode,
+  viewMode,
   selectedVillageId,
   selectedVillage,
   indicators,
   dataset,
+  villages,
   fallbackViewState,
   onSelectVillage,
   onClearSelection,
   onMapError,
+  toolbar,
 }: GeoMapProps) {
   const mapRef = useRef<MapRef>(null)
   const previousHoverId = useRef<string | null>(null)
@@ -155,14 +162,15 @@ export function GeoMap({
     ? getVillageLabelCoordinate(selectedFeature)
     : null
   const hoveredVillage = hover
-    ? getVillageById(hover.id, dataset.villages)
+    ? getVillageById(hover.id, villages)
     : undefined
 
   const setFeatureHover = useCallback((id: string | null, value: boolean) => {
+    if (viewMode === "infographic") return
     const map = mapRef.current?.getMap()
     if (!map || !map.isStyleLoaded() || !id) return
     map.setFeatureState({ source: VILLAGE_SOURCE_ID, id }, { hover: value })
-  }, [])
+  }, [viewMode])
 
   const clearHover = useCallback(() => {
     if (previousHoverId.current) {
@@ -181,10 +189,24 @@ export function GeoMap({
       if (!container.clientWidth || !container.clientHeight) return false
 
       map.resize()
+
+      const bandonganFeature = geoJson?.features?.find((f: any) => String(f.properties?.id ?? f.id) === "3308142001")
+      if (bandonganFeature) {
+        const bandonganBounds = getGeoJsonBounds(bandonganFeature)
+        if (bandonganBounds) {
+          map.fitBounds(toMapBounds(bandonganBounds), {
+            padding: fitPadding,
+            duration,
+            maxZoom: isMobile ? 12.1 : 12.9,
+          })
+          return true
+        }
+      }
+
       if (focusBounds) {
         const maxZoom = isLocked
           ? CITY_OVERVIEW_MAX_ZOOM
-          : DISTRICT_FOCUS_MAX_ZOOM
+          : (isMobile ? 12.2 : DISTRICT_FOCUS_MAX_ZOOM)
         map.fitBounds(toMapBounds(focusBounds), {
           padding: fitPadding,
           duration,
@@ -199,7 +221,7 @@ export function GeoMap({
         duration,
       })
       return true
-    }, [fallbackViewState, fitPadding, focusBounds, isLocked])
+    }, [fallbackViewState, fitPadding, focusBounds, isLocked, isMobile, geoJson])
 
   const applyNavigationConstraints = useCallback(() => {
     const map = mapRef.current?.getMap()
@@ -472,7 +494,10 @@ export function GeoMap({
           />
         )}
         {mapReady && focusBoundary && outsideMask && (
-          <FocusMaskLayer outsideMask={outsideMask} />
+          <FocusMaskLayer
+            outsideMask={outsideMask}
+            displayMode={displayMode}
+          />
         )}
         {mapReady && focusBoundary && neighborBoundary && (
           <ContextBoundaryLayer
@@ -480,6 +505,7 @@ export function GeoMap({
             neighborBoundary={neighborBoundary}
             cityContextBoundary={cityContextBoundary}
             cityContextLabel={dataset.cityContextLabel}
+            displayMode={displayMode}
           />
         )}
         {mapReady && geoJson && (
@@ -491,7 +517,27 @@ export function GeoMap({
             displayMode={displayMode}
           />
         )}
-        {mapReady && hover && !selectedVillageId && (
+
+        {/* Infographic Title Overlay */}
+        {viewMode === "infographic" && (
+          <div className="infographic-title-overlay">
+            <h1>Infografis Monografi Desa</h1>
+            <h2>Kecamatan Bandongan, Magelang</h2>
+          </div>
+        )}
+
+        {/* Infographic Overlay Mode */}
+        {mapReady && geoJson && viewMode === "infographic" && (
+          <InfographicOverlay
+            geoJson={geoJson}
+            villages={villages}
+            indicators={indicators}
+            colorMap={colorMap}
+          />
+        )}
+
+        {/* Interactive Overlay Popups */}
+        {mapReady && hover && !selectedVillageId && viewMode === "interactive" && (
           <VillagePopup
             longitude={hover.longitude}
             latitude={hover.latitude}
@@ -515,13 +561,16 @@ export function GeoMap({
         <FullscreenControl position="bottom-right" />
       </Map>
 
-      {!isLocked && (
-        <MapControls
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onReset={handleReset}
-        />
-      )}
+      <div className="map-ui-bottom-left">
+        {!isLocked && (
+          <MapControls
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onReset={handleReset}
+          />
+        )}
+        {toolbar}
+      </div>
     </div>
   )
 }

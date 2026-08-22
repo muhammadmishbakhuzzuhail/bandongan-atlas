@@ -6,13 +6,14 @@ import {
   buildAggregateLabelCollection,
   buildVillageLabelCollection,
 } from "@/lib/geojson"
-import type { VillageFeatureCollection } from "@/types/geo"
+import type { VillageFeatureCollection, MapDisplayMode } from "@/types/geo"
 
 interface ContextBoundaryLayerProps {
   focusBoundary: VillageFeatureCollection
   neighborBoundary: VillageFeatureCollection
   cityContextBoundary: VillageFeatureCollection | null
   cityContextLabel?: string
+  displayMode: MapDisplayMode
 }
 
 const DISTRICT_BOUNDARY_COLOR = "#222222"
@@ -22,6 +23,7 @@ export function ContextBoundaryLayer({
   neighborBoundary,
   cityContextBoundary,
   cityContextLabel,
+  displayMode,
 }: ContextBoundaryLayerProps) {
   const cityContextLabels = useMemo(
     () =>
@@ -51,8 +53,8 @@ export function ContextBoundaryLayer({
             id="city-context-fill"
             type="fill"
             paint={{
-              "fill-color": "#FFFFFF",
-              "fill-opacity": 1,
+              "fill-color": displayMode === "satellite" ? "#f4f4f4" : "rgba(255, 255, 255, 0)",
+              "fill-opacity": displayMode === "satellite" ? 1 : 0,
             }}
           />
           <Layer
@@ -80,8 +82,8 @@ export function ContextBoundaryLayer({
             id="neighbor-boundary-fill"
             type="fill"
             paint={{
-              "fill-color": "#FFFFFF",
-              "fill-opacity": 1,
+              "fill-color": displayMode === "satellite" ? "#f4f4f4" : "rgba(255, 255, 255, 0)",
+              "fill-opacity": displayMode === "satellite" ? 1 : 0,
             }}
           />
           <Layer

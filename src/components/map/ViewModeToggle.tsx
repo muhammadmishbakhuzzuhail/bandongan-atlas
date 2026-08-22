@@ -1,37 +1,36 @@
 "use client"
 
-import { ImageIcon, Palette } from "lucide-react"
-import type { MapDisplayMode } from "@/types/geo"
+import { MousePointer2, Network } from "lucide-react"
 
-interface MapDisplayToggleProps {
-  mode: MapDisplayMode
-  onChange: (mode: MapDisplayMode) => void
+interface ViewModeToggleProps {
+  mode: "interactive" | "infographic"
+  onChange: (mode: "interactive" | "infographic") => void
 }
 
 const displayModes = [
   {
-    value: "overlay" as const,
-    label: "Berwarna",
-    shortLabel: "Warna",
-    icon: Palette,
+    value: "interactive" as const,
+    label: "Interaktif",
+    shortLabel: "Interaktif",
+    icon: MousePointer2,
   },
   {
-    value: "satellite" as const,
-    label: "Satelit",
-    shortLabel: "Satelit",
-    icon: ImageIcon,
+    value: "infographic" as const,
+    label: "Infografis",
+    shortLabel: "Infografis",
+    icon: Network,
   },
 ]
 
-export function MapDisplayToggle({
+export function ViewModeToggle({
   mode,
   onChange,
-}: MapDisplayToggleProps) {
+}: ViewModeToggleProps) {
   return (
     <div
-      className="map-display-toggle"
+      className="map-display-toggle view-mode-toggle"
       role="group"
-      aria-label="Tampilan peta"
+      aria-label="Mode interaksi"
     >
       {displayModes.map((item) => {
         const Icon = item.icon
@@ -43,7 +42,7 @@ export function MapDisplayToggle({
             type="button"
             className={`map-display-toggle-button${active ? " is-active" : ""}`}
             aria-pressed={active}
-            aria-label={`Tampilkan ${item.label.toLocaleLowerCase("id-ID")}`}
+            aria-label={`Mode ${item.label.toLocaleLowerCase("id-ID")}`}
             title={item.label}
             onClick={() => onChange(item.value)}
           >

@@ -55,20 +55,26 @@ export function VillageInfoDialog({
     <Popup
       longitude={longitude}
       latitude={latitude}
-      anchor="left"
-      offset={18}
+      offset={14}
       closeButton={false}
       closeOnClick={false}
-      maxWidth="min(410px, calc(100vw - 24px))"
+      maxWidth="380px"
       className="village-info-popup"
     >
-      <section
-        className="infographic-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
+      <div
+        className="village-info-dialog-backdrop"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose()
+        }}
       >
-        <div className="dialog-header">
+        <section
+          className="infographic-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="dialog-header">
           <div className="dialog-heading">
             <span
               className="dialog-color-swatch"
@@ -98,18 +104,24 @@ export function VillageInfoDialog({
         {village ? (
           <>
             <div className="dialog-stat-grid">
-              {indicators.length > 0 ? (
-                indicators.map((ind) => {
+              {indicators.filter(ind => {
+                const val = village.monografiData?.[ind.id];
+                return val !== undefined && val !== null;
+              }).length > 0 ? (
+                indicators.filter(ind => {
+                  const val = village.monografiData?.[ind.id];
+                  return val !== undefined && val !== null;
+                }).map((ind) => {
                   const val = village.monografiData?.[ind.id] ?? null;
                   return (
                     <div key={ind.id} className="dialog-stat">
                       <div className="dialog-stat-label">
                         <span>{ind.nama_indikator}</span>
                       </div>
-                      <strong>
+                      <strong className="font-semibold text-base text-[#173B39]">
                         <span className="truncate">{formatNullableNumber(val)}</span>
                         {ind.satuan && (
-                          <span className="text-[0.55em] font-medium opacity-60 tracking-normal translate-y-[-1px] ml-1.5">
+                          <span className="text-[0.6em] font-normal opacity-70 tracking-normal translate-y-[-1px] ml-1.5">
                             {ind.satuan}
                           </span>
                         )}
@@ -122,12 +134,10 @@ export function VillageInfoDialog({
                   <div className="dialog-stat-label">
                     <span>Belum ada indikator aktif</span>
                   </div>
-                  <strong>-</strong>
+                  <strong className="font-medium">-</strong>
                 </div>
               )}
             </div>
-
-
           </>
         ) : (
           <div className="dialog-missing-state">
@@ -138,6 +148,7 @@ export function VillageInfoDialog({
           </div>
         )}
       </section>
+      </div>
     </Popup>
   )
 }

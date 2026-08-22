@@ -10,7 +10,7 @@ export const COLOR_MAP_STYLE: StyleSpecification = {
       id: "color-map-background",
       type: "background",
       paint: {
-        "background-color": "#FBFCFB",
+        "background-color": "rgba(255, 255, 255, 0)",
       },
     },
   ],

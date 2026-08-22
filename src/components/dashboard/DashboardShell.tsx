@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Image from "next/image"
-import { CircleAlert, Layers3, LoaderCircle } from "lucide-react"
+import { CircleAlert, Layers3, LoaderCircle, Eye, EyeOff } from "lucide-react"
 import { GeoMap } from "@/components/map/GeoMap"
 import { MapDisplayToggle } from "@/components/map/MapDisplayToggle"
 import { VillageLegend } from "@/components/map/VillageLegend"
-import { VillageList } from "@/components/village/VillageList"
+import { ViewModeToggle } from "@/components/map/ViewModeToggle"
 import { activeDataset } from "@/data/datasets"
 import { getVillageById } from "@/data/villages"
 import {
@@ -124,12 +124,28 @@ export function DashboardShell() {
   const [listOpen, setListOpen] = useState(false)
   const [displayMode, setDisplayMode] =
     useState<MapDisplayMode>("overlay")
+  const [viewMode, setViewMode] = useState<"interactive" | "infographic">("interactive")
   const [mapError, setMapError] = useState<string | null>(null)
-  // Holds the live Sheets data for ALL villages, mapping desa_id -> { field_key: value }
   const [liveVillagesData, setLiveVillagesData] = useState<Record<string, Record<string, number>> | null>(null)
   const [liveIndicators, setLiveIndicators] = useState<MasterIndikator[]>([])
+  const [headerHidden, setHeaderHidden] = useState(false)
   const { selectedVillageId, selectVillage, clearSelection } =
     useVillageSelection(villageIds)
+
+  useEffect(() => {
+    setHeaderHidden(viewMode === "infographic")
+  }, [viewMode])
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setViewMode("interactive")
+      }
+    }
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -299,7 +315,8 @@ export function DashboardShell() {
 
   return (
     <main className="atlas-shell">
-      <header className="atlas-header">
+      {!headerHidden && (
+        <header className="atlas-header">
         <div className="atlas-brand">
           <div
             className={`atlas-brand-mark${activeDataset.brandLogoSrc ? " has-logo" : ""}`}
@@ -318,21 +335,38 @@ export function DashboardShell() {
             )}
           </div>
           <div>
-            <p>{activeDataset.brandName}</p>
-            <span>{activeDataset.brandSubtitle}</span>
+            <p>Monografi Kecamatan Bandongan</p>
+            <span>Peta Tematik & Interaktif Kependudukan</span>
           </div>
         </div>
         <div className="atlas-header-meta">
-          <span className="header-status">
-            <i aria-hidden="true" />
-            {boundaryStatus}
-          </span>
+          <button 
+            className="header-toggle-inline-btn"
+            onClick={() => setHeaderHidden(true)}
+            aria-label="Sembunyikan Header"
+            title="Sembunyikan Header"
+          >
+            <EyeOff size={16} />
+          </button>
         </div>
       </header>
+      )}
+
+      {headerHidden && (
+        <button 
+          className="header-unhide-btn"
+          onClick={() => setHeaderHidden(false)}
+          aria-label="Tampilkan Header"
+          title="Tampilkan Header"
+        >
+          <Eye size={18} />
+        </button>
+      )}
 
       <section className="atlas-workspace" aria-label={`Peta interaktif ${activeDataset.title}`}>
         <div
           className="map-stage"
+          data-view-mode={viewMode}
           data-mask-pending={
             activeDataset.maskOutsideFocus &&
             (boundary.status !== "ready" || !boundary.outsideMask)
@@ -349,32 +383,27 @@ export function DashboardShell() {
             outsideMask={boundary.outsideMask}
             colorMap={colorMap}
             displayMode={displayMode}
+            viewMode={viewMode}
             selectedVillageId={selectedVillageId}
             selectedVillage={selectedVillage}
             dataset={activeDataset}
+            villages={mergedVillages}
             fallbackViewState={activeDataset.fallbackViewState}
             indicators={liveIndicators}
             onSelectVillage={handleSelectVillage}
             onClearSelection={handleClearSelection}
             onMapError={setMapError}
+            toolbar={
+              <div className="map-toolbar">
+                <div className="map-action-row">
+                  <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+                  <MapDisplayToggle mode={displayMode} onChange={setDisplayMode} />
+                </div>
+              </div>
+            }
           />
 
-          <div className="map-toolbar">
-            <div className="map-action-row">
-              <VillageList
-                villages={mergedVillages}
-                unitLabel={activeDataset.unitLabel}
-                unitLabelPlural={activeDataset.unitLabelPlural}
-                selectedVillageId={selectedVillageId}
-                isOpen={listOpen}
-                onToggle={() => setListOpen((open) => !open)}
-                onSelectVillage={handleSelectVillage}
-              />
-              <MapDisplayToggle mode={displayMode} onChange={setDisplayMode} />
-            </div>
-          </div>
-
-          {boundary.status === "ready" && boundary.data && boundaryCount > 0 && (
+          {boundary.status === "ready" && boundary.data && boundaryCount > 0 && viewMode === "interactive" && (
             <VillageLegend
               data={boundary.data}
               selectedVillageId={selectedVillageId}

@@ -4,18 +4,20 @@ import type { Feature, MultiPolygon, Polygon, Position } from "geojson"
 import type { VillageFeature, VillageFeatureCollection } from "@/types/geo"
 
 export const REGION_COLOR_PALETTE = [
-  "#E9A6A6",
-  "#A7D59B",
-  "#8EBFE6",
-  "#F1D38A",
-  "#C7A7E8",
-  "#A8D8D0",
-  "#E8B8D0",
-  "#F0BE8D",
-  "#AFC7EB",
-  "#D6D88C",
-  "#BBD7B0",
-  "#D8B9E8",
+  "#FF6B6B",
+  "#4ECDC4",
+  "#45B7D1",
+  "#FDCB6E",
+  "#6C5CE7",
+  "#FF9FF3",
+  "#00D2D3",
+  "#54A0FF",
+  "#5F27CD",
+  "#FF9F43",
+  "#1DD1A1",
+  "#EE5253",
+  "#01A3A4",
+  "#FECA57",
 ] as const
 
 export type RegionColorMap = Readonly<Record<string, string>>

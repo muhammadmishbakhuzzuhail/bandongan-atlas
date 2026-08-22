@@ -20,8 +20,13 @@ export function VillagePopup({
   village,
   indicators,
 }: VillagePopupProps) {
-  // Only show the first 4 active indicators in the popup so it doesn't get too large
-  const displayIndicators = indicators.slice(0, 4);
+  // Filter indicators to only those with a valid value
+  const validIndicators = indicators.filter(ind => {
+    const val = village?.monografiData?.[ind.id];
+    return val !== undefined && val !== null;
+  });
+
+  const displayIndicators = validIndicators.slice(0, 4);
 
   return (
     <Popup
@@ -35,7 +40,7 @@ export function VillagePopup({
       className="village-popup"
     >
       <div role="tooltip" className="popup-content">
-        <strong className="popup-title">{name}</strong>
+        <strong className="popup-title font-semibold">{name}</strong>
         <div className="popup-stat-grid" aria-label={`Statistik ${name}`}>
           {displayIndicators.length > 0 ? (
             displayIndicators.map((ind) => {
@@ -45,10 +50,10 @@ export function VillagePopup({
                   <span className="popup-stat-label">
                     {ind.nama_indikator}
                   </span>
-                  <strong>
+                  <strong className="font-medium">
                     <span className="truncate">{formatNullableNumber(val)}</span>
                     {ind.satuan && (
-                      <span className="text-[0.6em] font-medium opacity-60 tracking-normal translate-y-[-0.5px]">
+                      <span className="text-[0.6em] font-normal opacity-70 tracking-normal translate-y-[-0.5px]">
                         {ind.satuan}
                       </span>
                     )}

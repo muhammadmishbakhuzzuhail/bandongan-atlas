@@ -1,13 +1,14 @@
 "use client"
 
 import { Layer, Source } from "react-map-gl/maplibre"
-import type { VillageFeatureCollection } from "@/types/geo"
+import type { VillageFeatureCollection, MapDisplayMode } from "@/types/geo"
 
 interface FocusMaskLayerProps {
   outsideMask: VillageFeatureCollection
+  displayMode: MapDisplayMode
 }
 
-export function FocusMaskLayer({ outsideMask }: FocusMaskLayerProps) {
+export function FocusMaskLayer({ outsideMask, displayMode }: FocusMaskLayerProps) {
   return (
     <Source
       id="outside-focus-mask"
@@ -18,8 +19,8 @@ export function FocusMaskLayer({ outsideMask }: FocusMaskLayerProps) {
         id="outside-focus-mask-fill"
         type="fill"
         paint={{
-          "fill-color": "#FFFFFF",
-          "fill-opacity": 1,
+          "fill-color": displayMode === "satellite" ? "#f4f4f4" : "rgba(255, 255, 255, 0)",
+          "fill-opacity": displayMode === "satellite" ? 1 : 0,
         }}
       />
     </Source>
