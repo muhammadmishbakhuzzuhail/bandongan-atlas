@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSheetByTitle } from '../../../../lib/google-sheets';
+import { getAllMonografi } from '../../../../lib/services/monografi.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,18 +8,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const sheet = await getSheetByTitle('DATA_MONOGRAFI');
-    const rows = await sheet.getRows();
-
-    const data = rows.map(row => ({
-      id: row.get('id'),
-      desa_id: row.get('desa_id'),
-      indikator_id: row.get('indikator_id'),
-      tahun: parseInt(row.get('tahun'), 10),
-      bulan: parseInt(row.get('bulan'), 10),
-      nilai: parseFloat(row.get('nilai')),
-    }));
-
+    const data = await getAllMonografi();
     return NextResponse.json({ data });
   } catch (error) {
     console.error('Failed to fetch all monografi:', error);

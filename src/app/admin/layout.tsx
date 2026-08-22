@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
+import { fetchApi } from '@/lib/api-client';
 import {
   BarChart3,
   BookOpen,
@@ -28,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await fetchApi('/api/auth/logout', { method: 'POST' });
     router.push('/login');
   };
 
@@ -57,9 +58,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex">
+    <div className="h-screen bg-[#F9FAFB] flex overflow-hidden">
       {/* ───── Desktop Sidebar ───── */}
-      <aside className="hidden md:flex flex-col w-[260px] shrink-0 bg-white border-r border-[#173B39]/10 min-h-screen">
+      <aside className="hidden md:flex flex-col w-[260px] shrink-0 bg-white border-r border-[#173B39]/10 h-full">
         {/* Brand */}
         <div className="flex items-center gap-3 px-6 py-6 border-b border-[#173B39]/5">
           <Image

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Pencil, Trash2, Search, ChevronUp, ChevronDown, ToggleLeft, ToggleRight } from 'lucide-react';
+import { fetchApi } from '@/lib/api-client';
 import { Pagination } from '@/components/admin/Pagination';
 import { FormModal } from '@/components/admin/FormModal';
 import { MasterIndikator } from '@/types/database';
@@ -37,7 +38,7 @@ export default function IndikatorPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/indikator?all=1');
+      const res = await fetchApi('/api/indikator?all=1');
       const json = await res.json();
       setItems(json.data || []);
     } catch { /* noop */ } finally { setLoading(false); }
@@ -81,7 +82,7 @@ export default function IndikatorPage() {
     try {
       const url = editId ? `/api/indikator/${editId}` : '/api/indikator';
       const method = editId ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetchApi(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       if (res.ok) { setModalOpen(false); fetchAll(); }
     } finally { setSaving(false); }
   };
@@ -89,13 +90,13 @@ export default function IndikatorPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus indikator ini? Data monografi yang terkait tidak akan terhapus.')) return;
     setDeleteId(id);
-    await fetch(`/api/indikator/${id}`, { method: 'DELETE' });
+    await fetchApi(`/api/indikator/${id}`, { method: 'DELETE' });
     setDeleteId(null);
     fetchAll();
   };
 
   const handleToggle = async (item: MasterIndikator) => {
-    await fetch(`/api/indikator/${item.id}`, {
+    await fetchApi(`/api/indikator/${item.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: !item.is_active }),
@@ -177,6 +178,17 @@ export default function IndikatorPage() {
             <label className="block text-xs font-bold text-[#173B39] uppercase tracking-wider mb-1.5">Satuan (Opsional)</label>
             <input type="text" value={form.satuan} onChange={e => setForm(f => ({ ...f, satuan: e.target.value }))} className="w-full px-4 py-3 bg-[#F9FAFB] border border-[#173B39]/10 rounded-xl text-base sm:text-[0.9rem] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1E716A]/20 focus:border-[#1E716A] text-[#173B39] transition-colors" placeholder="Contoh: Jiwa, Rp, Ha" />
           </div>
+          {editId && (
+            <div className="flex items-center justify-between p-4 bg-[#F9FAFB] border border-[#173B39]/10 rounded-xl">
+              <div>
+                <p className="text-[0.9rem] font-bold text-[#173B39]">Status Aktif</p>
+                <p className="text-xs text-[#173B39]/60">Indikator akan tampil di dashboard jika aktif.</p>
+              </div>
+              <button type="button" onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))} className="p-1 rounded-full focus:outline-none transition-colors" aria-label="Toggle Status">
+                {form.is_active ? <ToggleRight size={32} className="text-[#1E716A]" /> : <ToggleLeft size={32} className="text-[#173B39]/30" />}
+              </button>
+            </div>
+          )}
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-4 border-t border-[#173B39]/5">
             <button type="button" onClick={() => setModalOpen(false)} className="w-full sm:w-auto px-5 py-2.5 text-[0.9rem] font-semibold text-[#173B39]/70 bg-[#F9FAFB] border border-[#173B39]/10 rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors">Batal</button>
             <button type="submit" disabled={saving} className="w-full sm:w-auto px-5 py-2.5 text-[0.9rem] font-semibold bg-[#1E716A] text-white rounded-xl hover:bg-[#155A55] active:scale-[0.98] transition-all disabled:opacity-50 shadow-sm">

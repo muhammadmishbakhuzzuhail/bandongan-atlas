@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getSheetByTitle } from '@/lib/google-sheets';
 import { verifySession } from '@/lib/services/auth.service';
 import { cookies } from 'next/headers';
@@ -36,6 +37,8 @@ export async function PUT(
 
     await row.save();
     await createAuditLog(payload.userId as string, 'UPDATE', 'MASTER_DESA', `Updated desa ${id}`);
+    
+    revalidateTag('desa', { expire: 0 });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -61,6 +64,8 @@ export async function DELETE(
 
     await row.delete();
     await createAuditLog(payload.userId as string, 'DELETE', 'MASTER_DESA', `Deleted desa ${id}`);
+
+    revalidateTag('desa', { expire: 0 });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { fetchApi } from '@/lib/api-client';
 import { Pagination } from '@/components/admin/Pagination';
 import { AdminHeader, AdminFilterContainer, AdminSearchInput, AdminTableContainer, AdminTableHead, AdminTh, AdminSortIcon, AdminTr, AdminTd, AdminButton, AdminTableSkeleton, AdminEmptyRow } from '@/components/admin/TableLayout';
 
@@ -44,7 +45,7 @@ export default function AuditPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/audit');
+      const res = await fetchApi('/api/audit');
       const json = await res.json();
       setLogs(json.data || []);
     } catch { /* noop */ } finally { setLoading(false); }

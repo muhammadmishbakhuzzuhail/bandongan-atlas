@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSheetByTitle } from '../../../../lib/google-sheets';
+import { getAllMonografi } from '../../../../lib/services/monografi.service';
 import { getAllIndikator } from '../../../../lib/services/indikator.service';
 
 export const dynamic = 'force-dynamic';
@@ -19,18 +19,17 @@ export async function GET() {
     const indikatorMap = new Map(indikators.map(ind => [ind.id, ind]));
 
     // Fetch all monografi rows
-    const sheet = await getSheetByTitle('DATA_MONOGRAFI');
-    const rows = await sheet.getRows();
+    const rows = await getAllMonografi();
 
     // Group by desa_id, then by indikator_id, keeping the latest tahun+bulan
     const latestByDesaAndIndikator = new Map<string, Map<string, { tahun: number; bulan: number; nilai: number }>>();
 
     for (const row of rows) {
-      const desaId = row.get('desa_id') as string;
-      const indikatorId = row.get('indikator_id') as string;
-      const tahun = parseInt(row.get('tahun'), 10);
-      const bulan = parseInt(row.get('bulan'), 10);
-      const nilai = parseFloat(row.get('nilai'));
+      const desaId = row.desa_id;
+      const indikatorId = row.indikator_id;
+      const tahun = row.tahun;
+      const bulan = row.bulan;
+      const nilai = row.nilai;
 
       if (!latestByDesaAndIndikator.has(desaId)) {
         latestByDesaAndIndikator.set(desaId, new Map());

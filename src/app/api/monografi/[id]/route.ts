@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getSheetByTitle } from '../../../../lib/google-sheets';
 import { verifySession } from '../../../../lib/services/auth.service';
 import { cookies } from 'next/headers';
@@ -27,7 +28,9 @@ export async function DELETE(
     if (!row) return NextResponse.json({ error: 'Row not found' }, { status: 404 });
 
     await row.delete();
-    await createAuditLog(payload.userId as string, 'DELETE', 'DATA_MONOGRAFI', `Deleted monografi id ${id}`);
+    await createAuditLog(payload.userId as string, 'DELETE', 'DATA_MONOGRAFI', `Deleted monografi ${id}`);
+
+    revalidateTag('monografi', { expire: 0 });
 
     return NextResponse.json({ success: true });
   } catch (error) {

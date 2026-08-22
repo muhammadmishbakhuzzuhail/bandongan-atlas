@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getSheetByTitle } from '../../../../lib/google-sheets';
 import { verifySession } from '../../../../lib/services/auth.service';
 import { cookies } from 'next/headers';
@@ -37,6 +38,8 @@ export async function PUT(
     await row.save();
     await createAuditLog(payload.userId as string, 'UPDATE', 'MASTER_INDIKATOR', `Updated indikator ${id}`);
 
+    revalidateTag('indikator', { expire: 0 });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to update indikator:', error);
@@ -61,6 +64,8 @@ export async function DELETE(
 
     await row.delete();
     await createAuditLog(payload.userId as string, 'DELETE', 'MASTER_INDIKATOR', `Deleted indikator ${id}`);
+
+    revalidateTag('indikator', { expire: 0 });
 
     return NextResponse.json({ success: true });
   } catch (error) {

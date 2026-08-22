@@ -1,21 +1,31 @@
+import { unstable_cache } from 'next/cache';
 import { getSheetByTitle } from '../google-sheets';
 import { DataMonografi } from '../../types/database';
 import crypto from 'crypto';
 
-export async function getMonografiByDesa(desa_id: string): Promise<DataMonografi[]> {
+async function fetchAllMonografi(): Promise<DataMonografi[]> {
   const sheet = await getSheetByTitle('DATA_MONOGRAFI');
   const rows = await sheet.getRows();
   
-  return rows
-    .filter(row => row.get('desa_id') === desa_id)
-    .map(row => ({
-      id: row.get('id'),
-      desa_id: row.get('desa_id'),
-      indikator_id: row.get('indikator_id'),
-      tahun: parseInt(row.get('tahun'), 10),
-      bulan: parseInt(row.get('bulan'), 10),
-      nilai: parseFloat(row.get('nilai'))
-    }));
+  return rows.map(row => ({
+    id: row.get('id'),
+    desa_id: row.get('desa_id'),
+    indikator_id: row.get('indikator_id'),
+    tahun: parseInt(row.get('tahun'), 10),
+    bulan: parseInt(row.get('bulan'), 10),
+    nilai: parseFloat(row.get('nilai'))
+  }));
+}
+
+export const getAllMonografi = unstable_cache(
+  fetchAllMonografi,
+  ['monografi-all-list'],
+  { tags: ['monografi'], revalidate: 3600 }
+);
+
+export async function getMonografiByDesa(desa_id: string): Promise<DataMonografi[]> {
+  const all = await getAllMonografi();
+  return all.filter(row => row.desa_id === desa_id);
 }
 
 export async function createOrUpdateMonografi(data: Omit<DataMonografi, 'id'>) {

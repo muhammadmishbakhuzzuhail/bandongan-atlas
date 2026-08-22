@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSheetByTitle } from '../../../../../lib/google-sheets';
+import { getAllMonografi } from '../../../../../lib/services/monografi.service';
 import { getAllIndikator } from '../../../../../lib/services/indikator.service';
 
 export const dynamic = 'force-dynamic';
@@ -27,19 +27,18 @@ export async function GET(
     const indikatorMap = new Map(indikators.map(ind => [ind.id, ind]));
 
     // Fetch all monografi rows for this desa
-    const sheet = await getSheetByTitle('DATA_MONOGRAFI');
-    const rows = await sheet.getRows();
+    const rows = await getAllMonografi();
 
-    const desaRows = rows.filter(row => row.get('desa_id') === desaId);
+    const desaRows = rows.filter(row => row.desa_id === desaId);
 
     // Group by indikator_id, keep only the row with the latest tahun+bulan
     const latestByIndikator = new Map<string, { tahun: number; bulan: number; nilai: number }>();
 
     for (const row of desaRows) {
-      const indikatorId = row.get('indikator_id') as string;
-      const tahun = parseInt(row.get('tahun'), 10);
-      const bulan = parseInt(row.get('bulan'), 10);
-      const nilai = parseFloat(row.get('nilai'));
+      const indikatorId = row.indikator_id;
+      const tahun = row.tahun;
+      const bulan = row.bulan;
+      const nilai = row.nilai;
 
       const existing = latestByIndikator.get(indikatorId);
       if (!existing || tahun > existing.tahun || (tahun === existing.tahun && bulan > existing.bulan)) {

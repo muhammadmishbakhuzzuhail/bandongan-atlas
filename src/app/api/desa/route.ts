@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getAllDesa } from '../../../lib/services/desa.service';
 import { getSheetByTitle } from '../../../lib/google-sheets';
 import { verifySession } from '../../../lib/services/auth.service';
@@ -40,6 +41,8 @@ export async function POST(request: Request) {
     await sheet.addRow({ id, nama_desa, slug, nama_kecamatan });
 
     await createAuditLog(payload.userId as string, 'CREATE', 'MASTER_DESA', `Created desa ${nama_desa}`);
+
+    revalidateTag('desa', { expire: 0 });
 
     return NextResponse.json({ data: { id, nama_desa, slug, nama_kecamatan } }, { status: 201 });
   } catch (error) {

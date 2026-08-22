@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import { Pencil, Trash2, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { fetchApi } from '@/lib/api-client';
 import { Pagination } from '@/components/admin/Pagination';
 import { FormModal } from '@/components/admin/FormModal';
 import { MasterDesa, MasterIndikator } from '@/types/database';
 import { AdminHeader, AdminFilterContainer, AdminSearchInput, AdminSelect, AdminFormSelect, AdminTableContainer, AdminTableHead, AdminTh, AdminSortIcon, AdminTr, AdminTd, AdminButton, AdminTableSkeleton, AdminEmptyRow } from '@/components/admin/TableLayout';
 
-const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-const PAGE_SIZE = 10;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const PAGE_SIZE = 8;
 
 interface MonografiRow {
   id: string;
@@ -46,7 +47,7 @@ export default function MonografiPage() {
   const [search, setSearch] = useState('');
   const [filterDesa, setFilterDesa] = useState('');
   const [filterTahun, setFilterTahun] = useState('');
-  
+
   const [sortCol, setSortCol] = useState<SortColumn>('desa');
   const [sortAsc, setSortAsc] = useState(true);
 
@@ -60,9 +61,9 @@ export default function MonografiPage() {
     setLoading(true);
     try {
       const [mRes, dRes, iRes] = await Promise.all([
-        fetch('/api/monografi/all'),
-        fetch('/api/desa'),
-        fetch('/api/indikator'),
+        fetchApi('/api/monografi/all'),
+        fetchApi('/api/desa'),
+        fetchApi('/api/indikator'),
       ]);
       const [mData, dData, iData] = await Promise.all([mRes.json(), dRes.json(), iRes.json()]);
       setRows(mData.data || []);
@@ -94,7 +95,7 @@ export default function MonografiPage() {
       const desaA = desaMap.get(a.desa_id) ?? a.desa_id;
       const desaB = desaMap.get(b.desa_id) ?? b.desa_id;
       const desaCmp = desaA.localeCompare(desaB);
-      
+
       if (desaCmp !== 0) {
         return sortCol === 'desa' && !sortAsc ? -desaCmp : desaCmp;
       }
@@ -115,7 +116,8 @@ export default function MonografiPage() {
   }, [rows, search, filterDesa, filterTahun, desaMap, indMap, sortCol, sortAsc]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / PAGE_SIZE));
-  const paginated = filteredAndSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginatedRows = filteredAndSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const years = [...new Set(rows.map(r => r.tahun))].sort((a, b) => b - a);
 
   const openAdd = () => { setEditId(null); setForm(defaultForm()); setModalOpen(true); };
@@ -129,7 +131,7 @@ export default function MonografiPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch('/api/monografi', {
+      const res = await fetchApi('/api/monografi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, tahun: Number(form.tahun), bulan: Number(form.bulan), nilai: parseFloat(form.nilai) }),
@@ -140,7 +142,7 @@ export default function MonografiPage() {
 
   const handleDelete = async (id: string) => {
     setDeleteId(id);
-    await fetch(`/api/monografi/${id}`, { method: 'DELETE' });
+    await fetchApi(`/api/monografi/${id}`, { method: 'DELETE' });
     setDeleteId(null);
     fetchAll();
   };
@@ -155,17 +157,17 @@ export default function MonografiPage() {
 
   return (
     <div className="space-y-6">
-      <AdminHeader 
-        title="Data Monografi" 
-        subtitle={`${filteredAndSorted.length} entri ditemukan`} 
+      <AdminHeader
+        title="Data Monografi"
+        subtitle={`${filteredAndSorted.length} entri ditemukan`}
         action={<AdminButton onClick={openAdd}>Tambah +</AdminButton>}
       />
 
       {/* Filters */}
       <AdminFilterContainer>
-        <AdminSearchInput 
-          value={search} 
-          onChange={val => { setSearch(val); setPage(1); }} 
+        <AdminSearchInput
+          value={search}
+          onChange={val => { setSearch(val); setPage(1); }}
         />
         <AdminSelect value={filterDesa} onChange={val => { setFilterDesa(val); setPage(1); }} className="min-w-[180px]">
           <option value="">Semua Desa</option>
@@ -189,15 +191,15 @@ export default function MonografiPage() {
         <tbody>
           {loading ? (
             <AdminTableSkeleton rows={PAGE_SIZE} cols={5} />
-          ) : paginated.length === 0 ? (
+          ) : paginatedRows.length === 0 ? (
             <AdminEmptyRow colSpan={5}>
               Belum ada data. Klik <strong className="text-[#173B39]">Tambah +</strong> untuk memulai.
             </AdminEmptyRow>
           ) : (
-            paginated.map(row => {
+            paginatedRows.map(row => {
               const isNewDesa = row.desa_id !== currentDesaId;
               currentDesaId = row.desa_id;
-              
+
               return (
                 <Fragment key={row.id}>
                   {isNewDesa && (

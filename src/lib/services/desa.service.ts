@@ -1,7 +1,8 @@
+import { unstable_cache } from 'next/cache';
 import { getSheetByTitle } from '../google-sheets';
 import { MasterDesa } from '../../types/database';
 
-export async function getAllDesa(): Promise<MasterDesa[]> {
+async function fetchAllDesa(): Promise<MasterDesa[]> {
   const sheet = await getSheetByTitle('MASTER_DESA');
   const rows = await sheet.getRows();
 
@@ -12,3 +13,9 @@ export async function getAllDesa(): Promise<MasterDesa[]> {
     nama_kecamatan: row.get('nama_kecamatan'),
   }));
 }
+
+export const getAllDesa = unstable_cache(
+  fetchAllDesa,
+  ['desa-list'],
+  { tags: ['desa'], revalidate: 3600 }
+);

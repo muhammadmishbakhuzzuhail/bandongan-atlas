@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getMonografiByDesa, createOrUpdateMonografi } from '../../../lib/services/monografi.service';
 import { createAuditLog } from '../../../lib/services/audit.service';
 import { verifySession } from '../../../lib/services/auth.service';
@@ -59,12 +60,9 @@ export async function POST(request: Request) {
     });
 
     // 4. Create Audit Log
-    await createAuditLog(
-      payload.userId as string,
-      'UPSERT',
-      'DATA_MONOGRAFI',
-      `Updated indikator ${indikator_id} for desa ${desa_id} (${bulan}/${tahun}) to ${nilai}`
-    );
+    await createAuditLog(payload.userId as string, 'CREATE_OR_UPDATE', 'DATA_MONOGRAFI', `Updated monografi untuk desa ${desa_id}`);
+
+    revalidateTag('monografi', { expire: 0 });
 
     return NextResponse.json({ data: result });
   } catch (error) {

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getActiveIndikator, getAllIndikator } from '../../../lib/services/indikator.service';
 import { getSheetByTitle } from '../../../lib/google-sheets';
 import { verifySession } from '../../../lib/services/auth.service';
@@ -50,6 +51,8 @@ export async function POST(request: Request) {
     });
 
     await createAuditLog(payload.userId as string, 'CREATE', 'MASTER_INDIKATOR', `Created indikator ${nama_indikator}`);
+
+    revalidateTag('indikator', { expire: 0 });
 
     return NextResponse.json({ data: { id, nama_indikator, satuan, is_active: is_active !== false } }, { status: 201 });
   } catch (error) {

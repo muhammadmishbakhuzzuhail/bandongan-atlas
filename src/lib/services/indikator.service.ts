@@ -1,7 +1,8 @@
+import { unstable_cache } from 'next/cache';
 import { getSheetByTitle } from '../google-sheets';
 import { MasterIndikator } from '../../types/database';
 
-export async function getActiveIndikator(): Promise<MasterIndikator[]> {
+async function fetchActiveIndikator(): Promise<MasterIndikator[]> {
   const sheet = await getSheetByTitle('MASTER_INDIKATOR');
   const rows = await sheet.getRows();
   
@@ -15,7 +16,13 @@ export async function getActiveIndikator(): Promise<MasterIndikator[]> {
     }));
 }
 
-export async function getAllIndikator(): Promise<MasterIndikator[]> {
+export const getActiveIndikator = unstable_cache(
+  fetchActiveIndikator,
+  ['indikator-active-list'],
+  { tags: ['indikator'], revalidate: 3600 }
+);
+
+async function fetchAllIndikator(): Promise<MasterIndikator[]> {
   const sheet = await getSheetByTitle('MASTER_INDIKATOR');
   const rows = await sheet.getRows();
   
@@ -26,3 +33,9 @@ export async function getAllIndikator(): Promise<MasterIndikator[]> {
     is_active: row.get('is_active') === 'TRUE' || row.get('is_active') === 'true',
   }));
 }
+
+export const getAllIndikator = unstable_cache(
+  fetchAllIndikator,
+  ['indikator-all-list'],
+  { tags: ['indikator'], revalidate: 3600 }
+);

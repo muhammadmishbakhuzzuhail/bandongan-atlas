@@ -16,6 +16,7 @@ import {
 import { createOutsideFocusMask } from "@/lib/geo-mask"
 import { getRegionColorMap } from "@/lib/region-colors"
 import { useVillageSelection } from "@/hooks/useVillageSelection"
+import { fetchApi } from "@/lib/api-client"
 import type {
   MapDisplayMode,
   VillageFeature,
@@ -154,14 +155,14 @@ export function DashboardShell() {
       try {
         const [regionResponse, contextResponse, cityContextResponse] =
           await Promise.all([
-            fetch(activeDataset.geoJsonPath, { signal: controller.signal }),
+            fetchApi(activeDataset.geoJsonPath, { signal: controller.signal }),
             activeDataset.contextBoundaryPath
-              ? fetch(activeDataset.contextBoundaryPath, {
+              ? fetchApi(activeDataset.contextBoundaryPath, {
                   signal: controller.signal,
                 })
               : Promise.resolve(null),
             activeDataset.cityContextBoundaryPath
-              ? fetch(activeDataset.cityContextBoundaryPath, {
+              ? fetchApi(activeDataset.cityContextBoundaryPath, {
                   signal: controller.signal,
                 })
               : Promise.resolve(null),
@@ -244,7 +245,7 @@ export function DashboardShell() {
   // Fetch live monografi data for all villages from Google Sheets on mount
   useEffect(() => {
     const controller = new AbortController()
-    fetch(`/api/monografi/latest`, { signal: controller.signal })
+    fetchApi(`/api/monografi/latest`, { signal: controller.signal })
       .then(res => res.ok ? res.json() : null)
       .then(json => {
         if (json?.data) setLiveVillagesData(json.data)

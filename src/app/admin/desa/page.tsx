@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Pencil, Trash2, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { fetchApi } from '@/lib/api-client';
 import { Pagination } from '@/components/admin/Pagination';
 import { FormModal } from '@/components/admin/FormModal';
 import { MasterDesa } from '@/types/database';
@@ -38,7 +39,7 @@ export default function DesaPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/desa');
+      const res = await fetchApi('/api/desa');
       const json = await res.json();
       setItems(json.data || []);
     } catch { /* noop */ } finally { setLoading(false); }
@@ -82,7 +83,7 @@ export default function DesaPage() {
       const body = editId
         ? { nama_desa: form.nama_desa, slug: form.slug, nama_kecamatan: form.nama_kecamatan }
         : form;
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const res = await fetchApi(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) { setModalOpen(false); fetchAll(); }
     } finally { setSaving(false); }
   };
@@ -90,7 +91,7 @@ export default function DesaPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus desa ini dari master? Data monografi yang terkait tidak akan terhapus.')) return;
     setDeleteId(id);
-    await fetch(`/api/desa/${id}`, { method: 'DELETE' });
+    await fetchApi(`/api/desa/${id}`, { method: 'DELETE' });
     setDeleteId(null);
     fetchAll();
   };
@@ -103,17 +104,17 @@ export default function DesaPage() {
 
   return (
     <div className="space-y-6">
-      <AdminHeader 
-        title="Master Desa" 
-        subtitle={`${filteredAndSorted.length} desa terdaftar`} 
+      <AdminHeader
+        title="Master Desa"
+        subtitle={`${filteredAndSorted.length} desa terdaftar`}
         action={<AdminButton onClick={openAdd}>Tambah +</AdminButton>}
       />
 
       <AdminFilterContainer>
-        <AdminSearchInput 
-          value={search} 
-          onChange={val => { setSearch(val); setPage(1); }} 
-          placeholder="Cari nama desa atau ID..." 
+        <AdminSearchInput
+          value={search}
+          onChange={val => { setSearch(val); setPage(1); }}
+          placeholder="Cari nama desa atau ID..."
         />
       </AdminFilterContainer>
 
