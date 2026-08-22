@@ -75,79 +75,79 @@ export function VillageInfoDialog({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="dialog-header">
-          <div className="dialog-heading">
-            <span
-              className="dialog-color-swatch"
-              style={{ backgroundColor: accentColor }}
-              aria-hidden="true"
-            />
-            <div>
-              <p className="dialog-kicker">{dataset.unitLabel} terpilih</p>
-              <h2 id={titleId}>{name}</h2>
-              <p>{dataset.locationLabel}</p>
+            <div className="dialog-heading">
+              <span
+                className="dialog-color-swatch"
+                style={{ backgroundColor: accentColor }}
+                aria-hidden="true"
+              />
+              <div>
+                <p className="dialog-kicker">{dataset.unitLabel} terpilih</p>
+                <h3 id={titleId} className="font-bold text-lg">{name}</h3>
+                <p>{dataset.locationLabel}</p>
+              </div>
             </div>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="dialog-close-button"
+              onClick={onClose}
+              aria-label={`Tutup informasi ${name}`}
+              title="Tutup dialog"
+            >
+              <X size={18} strokeWidth={2.2} aria-hidden="true" />
+            </button>
           </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className="dialog-close-button"
-            onClick={onClose}
-            aria-label={`Tutup informasi ${name}`}
-            title="Tutup dialog"
-          >
-            <X size={18} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-        </div>
 
 
 
-        {village ? (
-          <>
-            <div className="dialog-stat-grid">
-              {indicators.filter(ind => {
-                const val = village.monografiData?.[ind.id];
-                return val !== undefined && val !== null;
-              }).length > 0 ? (
-                indicators.filter(ind => {
+          {village ? (
+            <>
+              <div className="dialog-stat-grid">
+                {indicators.filter(ind => {
                   const val = village.monografiData?.[ind.id];
                   return val !== undefined && val !== null;
-                }).map((ind) => {
-                  const val = village.monografiData?.[ind.id] ?? null;
-                  return (
-                    <div key={ind.id} className="dialog-stat">
-                      <div className="dialog-stat-label">
-                        <span>{ind.nama_indikator}</span>
+                }).length > 0 ? (
+                  indicators.filter(ind => {
+                    const val = village.monografiData?.[ind.id];
+                    return val !== undefined && val !== null;
+                  }).map((ind) => {
+                    const val = village.monografiData?.[ind.id] ?? null;
+                    return (
+                      <div key={ind.id} className="dialog-stat">
+                        <div className="dialog-stat-label">
+                          <span>{ind.nama_indikator}</span>
+                        </div>
+                        <p className="font-bold text-base text-[#173B39]">
+                          <span className="truncate">{formatNullableNumber(val)}</span>
+                          {ind.satuan && (
+                            <span className="text-[0.6em] font-normal opacity-70 tracking-normal translate-y-[-1px] ml-1.5">
+                              {ind.satuan}
+                            </span>
+                          )}
+                        </p>
                       </div>
-                      <strong className="font-semibold text-base text-[#173B39]">
-                        <span className="truncate">{formatNullableNumber(val)}</span>
-                        {ind.satuan && (
-                          <span className="text-[0.6em] font-normal opacity-70 tracking-normal translate-y-[-1px] ml-1.5">
-                            {ind.satuan}
-                          </span>
-                        )}
-                      </strong>
+                    );
+                  })
+                ) : (
+                  <div className="dialog-stat">
+                    <div className="dialog-stat-label">
+                      <span>Belum ada indikator aktif</span>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="dialog-stat">
-                  <div className="dialog-stat-label">
-                    <span>Belum ada indikator aktif</span>
+                    <strong className="font-medium">-</strong>
                   </div>
-                  <strong className="font-medium">-</strong>
-                </div>
-              )}
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="dialog-missing-state">
+              <strong>Statistik belum tersedia</strong>
+              <p>
+                Polygon ditemukan, tetapi belum ada pasangan statistik untuk ID wilayah ini.
+              </p>
             </div>
-          </>
-        ) : (
-          <div className="dialog-missing-state">
-            <strong>Statistik belum tersedia</strong>
-            <p>
-              Polygon ditemukan, tetapi belum ada pasangan statistik untuk ID wilayah ini.
-            </p>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
       </div>
     </Popup>
   )

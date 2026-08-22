@@ -34,9 +34,9 @@ const LABEL_LAYER_IDS = ["village-label", "village-label-selected"] as const
 
 const VILLAGE_FILL_OPACITY = {
   overlay: {
-    normal: 0.8,
-    hover: 1,
-    selected: 1,
+    normal: 0.75,
+    hover: 0.9,
+    selected: 0.95,
   },
   satellite: {
     normal: 0,

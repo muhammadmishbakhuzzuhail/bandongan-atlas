@@ -3,11 +3,13 @@
 .infographic-fixed-overlay {
   position: absolute;
   inset: 0;
-  pointer-events: none; /* Let clicks pass through the overlay to the map */
+  pointer-events: none;
+  /* Let clicks pass through the overlay to the map */
   z-index: 10;
   display: flex;
   justify-content: space-between;
-  padding: 100px 30px 40px; /* Leave space for top header */
+  padding: 100px 30px 40px;
+  /* Leave space for top header */
 }
 
 .infographic-svg-lines {
@@ -23,6 +25,7 @@
 .infographic-card::-webkit-scrollbar {
   width: 4px;
 }
+
 .infographic-card::-webkit-scrollbar-thumb {
   background: rgba(23, 59, 57, 0.2);
   border-radius: 4px;
@@ -65,7 +68,7 @@
 
 .infographic-card-title {
   font-weight: 700;
-  font-size: 0.72rem;
+  font-size: 0.9rem;
   letter-spacing: -0.01em;
   color: var(--atlas-ink);
   margin: 0;
@@ -109,7 +112,7 @@
 .infographic-stat-value {
   font-family: "Avenir Next", "Segoe UI", sans-serif;
   font-size: 0.76rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--atlas-ink);
   line-height: 1.1;
 }
@@ -134,7 +137,7 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   padding: 14px 36px;
-  border-radius: 100px;
+  border-radius: 10px;
   border: 1px solid rgba(23, 59, 57, 0.06);
   box-shadow: 0 12px 40px rgba(23, 59, 57, 0.08);
 }
@@ -169,9 +172,11 @@
   0% {
     transform: translate(-50%, -50%) scale(0.95);
   }
+
   50% {
     transform: translate(-50%, -50%) scale(1.15);
   }
+
   100% {
     transform: translate(-50%, -50%) scale(0.95);
   }
@@ -179,6 +184,7 @@
 
 /* Hide infographic mode and toggles on small / non-wide devices */
 @media (max-width: 1023px) {
+
   .view-mode-toggle,
   .infographic-fixed-overlay,
   .infographic-title-overlay {

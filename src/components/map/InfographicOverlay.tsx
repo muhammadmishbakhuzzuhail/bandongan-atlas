@@ -33,7 +33,7 @@ export function InfographicOverlay({
       const id = feature.properties?.id ?? feature.id
       const coord = getVillageLabelCoordinate(feature)
       const village = villages.find((v) => String(v.id) === String(id))
-      
+
       if (!coord || !village) return null
 
       const color = colorMap[village.id] ?? "#1E716A"
@@ -48,7 +48,7 @@ export function InfographicOverlay({
         validIndicators = indicators.slice(0, 4);
         village.monografiData = village.monografiData || {};
         validIndicators.forEach((ind, i) => {
-           village.monografiData![ind.id] = 1000 + (village.id.length * 100) + (i * 250);
+          village.monografiData![ind.id] = 1000 + (village.id.length * 100) + (i * 250);
         });
       }
 
@@ -136,10 +136,10 @@ export function InfographicOverlay({
     villageData.forEach((v) => {
       const card = cardRefs.current[v.id];
       if (!card) return;
-      
+
       const cardRect = card.getBoundingClientRect();
       const cardCenterX = cardRect.left - mapRect.left + (cardRect.width / 2);
-      
+
       // Anchor the line to the inside edge of the cards based on their current dragged position
       const isLeft = cardCenterX < mapRect.width / 2;
       const anchorX = isLeft ? cardRect.right - mapRect.left + 3 : cardRect.left - mapRect.left - 3;
@@ -155,12 +155,12 @@ export function InfographicOverlay({
       const cp1Y = anchorY;
       const cp2X = projected.x - (isLeft ? curveStrength : -curveStrength);
       const cp2Y = projected.y;
-      
+
       const pathData = `M ${anchorX} ${anchorY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${projected.x} ${projected.y}`;
 
       const bgPath = svg.querySelector(`#line-bg-${v.id}`);
       const mainPath = svg.querySelector(`#line-${v.id}`);
-      
+
       if (bgPath) bgPath.setAttribute('d', pathData);
       if (mainPath) mainPath.setAttribute('d', pathData);
     });
@@ -171,7 +171,7 @@ export function InfographicOverlay({
 
     map.on('move', renderLines);
     map.on('resize', renderLines);
-    
+
     // Initial renders
     renderLines();
     const timeout = setTimeout(renderLines, 100);
@@ -189,49 +189,49 @@ export function InfographicOverlay({
         {villageData.map(v => (
           <g key={`group-${v.id}`}>
             {/* White contrast underlay */}
-            <path 
-              id={`line-bg-${v.id}`} 
-              stroke="rgba(255, 255, 255, 0.95)" 
-              strokeWidth="3.5" 
-              fill="none" 
+            <path
+              id={`line-bg-${v.id}`}
+              stroke="rgba(255, 255, 255, 0.95)"
+              strokeWidth="3.5"
+              fill="none"
             />
             {/* Colored dashed connection line */}
-            <path 
-              id={`line-${v.id}`} 
-              stroke={v.color} 
-              strokeWidth="1.8" 
-              strokeDasharray="3 4" 
-              fill="none" 
+            <path
+              id={`line-${v.id}`}
+              stroke={v.color}
+              strokeWidth="1.8"
+              strokeDasharray="3 4"
+              fill="none"
             />
           </g>
         ))}
       </svg>
-      
+
       {/* Markers for dots */}
       {villageData.map(v => (
         <Marker key={`marker-${v.id}`} longitude={v.longitude} latitude={v.latitude} anchor="center">
-           <div 
-             className="infographic-dot" 
-             style={{ 
-               backgroundColor: v.color, 
-               boxShadow: `0 0 0 2px white, 0 0 0 5px ${v.color}40`,
-               position: 'relative', top: 0, left: 0 
-             }} 
-           />
+          <div
+            className="infographic-dot"
+            style={{
+              backgroundColor: v.color,
+              boxShadow: `0 0 0 2px white, 0 0 0 5px ${v.color}40`,
+              position: 'relative', top: 0, left: 0
+            }}
+          />
         </Marker>
       ))}
 
       {/* Scattered Draggable Cards */}
       {mounted && villageData.map(v => (
-        <motion.div 
-          key={v.id} 
-          ref={el => { cardRefs.current[v.id] = el as any }} 
+        <motion.div
+          key={v.id}
+          ref={el => { cardRefs.current[v.id] = el as any }}
           className="infographic-card absolute"
           style={{
             left: v.side === 'left' ? `${v.initialX}%` : undefined,
             right: v.side === 'right' ? `${v.initialX}%` : undefined,
             top: `${v.initialY}%`,
-            width: '184px',
+            width: '242px',
             position: 'absolute',
             zIndex: 20,
           }}
@@ -250,7 +250,7 @@ export function InfographicOverlay({
             {v.indicators.map((ind) => {
               const val = v.monografiData?.[ind.id] ?? null
               return (
-                <div key={ind.id} className="infographic-stat" title={`${ind.nama_indikator}: ${formatNullableNumber(val)} ${ind.satuan ?? ''}`}>
+                <div key={ind.id} className="infographic-stat" title={ind.nama_indikator + ": " + formatNullableNumber(val) + (ind.satuan ? " " + ind.satuan : "")}>
                   <span className="infographic-stat-label">{ind.nama_indikator}</span>
                   <strong className="infographic-stat-value">
                     {formatNullableNumber(val)}
@@ -265,12 +265,12 @@ export function InfographicOverlay({
 
       {/* Aggregate Summary Card (Total Kecamatan) */}
       {mounted && villageData.length > 0 && (
-        <motion.div 
+        <motion.div
           className="infographic-card infographic-summary-card absolute"
           style={{
             left: '50%',
             bottom: '3%',
-            width: '420px',
+            width: '460px',
             position: 'absolute',
             zIndex: 30,
             x: '-50%'
